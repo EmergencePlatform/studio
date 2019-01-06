@@ -2,13 +2,18 @@ echo "Welcome to Emergence Studio!"
 
 
 if [ -f /src/hologit/bin/cli.js ]; then
-  cat > /bin/git-holo <<- END_OF_SCRIPT
+  cat > "${HAB_BINLINK_DIR:-/bin}/git-holo" <<- END_OF_SCRIPT
 #!/bin/bash
+
+set -a
+. $(hab pkg path jarvus/hologit)/RUNTIME_ENVIRONMENT
+set +a
+
 exec $(hab pkg path core/node)/bin/node /src/hologit/bin/cli.js \$@
 
 END_OF_SCRIPT
-  chmod +x /bin/git-holo
-  echo "Linked /bin/git-holo to src/hologit/bin/cli.js"
+  chmod +x "${HAB_BINLINK_DIR:-/bin}/git-holo"
+  echo "Linked ${HAB_BINLINK_DIR:-/bin}/git-holo to src/hologit/bin/cli.js"
 else
   hab pkg binlink jarvus/hologit
 fi
