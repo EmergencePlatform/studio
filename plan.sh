@@ -6,8 +6,7 @@ pkg_license=("MIT")
 pkg_deps=(
   jarvus/hologit
   jarvus/watchman
-  emergence/php-core
-  emergence/php5
+  emergence/php-runtime
 )
 
 
