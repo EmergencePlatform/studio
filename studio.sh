@@ -1,6 +1,172 @@
 echo "Welcome to Emergence Studio!"
 
-hab pkg binlink jarvus/hologit
+
+if [ -f /src/hologit/bin/cli.js ]; then
+  cat > /bin/git-holo <<- END_OF_SCRIPT
+#!/bin/bash
+exec $(hab pkg path core/node)/bin/node /src/hologit/bin/cli.js \$@
+
+END_OF_SCRIPT
+  chmod +x /bin/git-holo
+  echo "Linked /bin/git-holo to src/hologit/bin/cli.js"
+else
+  hab pkg binlink jarvus/hologit
+fi
+
+
 hab pkg binlink core/git
 hab pkg binlink jarvus/watchman
 mkdir -m 777 -p /hab/svc/watchman/var
+
+
+echo
+echo "--> Configuring PsySH for application shell..."
+sed -e "s#\#\!/usr/bin/env php#\#\!$(hab pkg path emergence/php5)/bin/php#" --in-place "/root/.composer/vendor/psy/psysh/bin/psysh"
+
+mkdir -p /root/.config/psysh
+cat > /root/.config/psysh/config.php <<- END_OF_SCRIPT
+<?php
+
+date_default_timezone_set('America/New_York');
+
+return [
+    'commands' => [
+        new \Psy\Command\ParseCommand,
+    ],
+
+    'defaultIncludes' => [
+        '/hab/svc/php-runtime/config/initialize.php',
+    ]
+];
+
+END_OF_SCRIPT
+
+
+echo
+echo "--> Configuring services for local development..."
+
+init-user-config() {
+    config_pkg_name="$1"
+    config_default="$2"
+    [ -z "$config_pkg_name" -o -z "$config_default" ] && { echo >&2 'Usage: init-user-config pkg_name "[default]\nconfig = value"'; return 1; }
+
+    config_toml_path="/hab/user/${config_pkg_name}/config/user.toml"
+
+    if [ ! -f "$config_toml_path" ]; then
+        echo "    Initializing: $config_toml_path"
+        mkdir -p "/hab/user/${config_pkg_name}/config"
+        echo -e "$config_default" > "$config_toml_path"
+    fi
+}
+
+init-user-config nginx '
+    [http.listen]
+    port = 7080
+'
+
+init-user-config mysql '
+    app_username = "emergence-php-runtime"
+    app_password = "emergence-php-runtime"
+    bind = "0.0.0.0"
+'
+
+init-user-config mysql-remote '
+    app_username = "emergence-php-runtime"
+    app_password = "emergence-php-runtime"
+    host = "127.0.0.1"
+    port = 3306
+'
+
+
+echo
+
+echo "    * Use 'start-mysql-local' to start local mysql service"
+start-mysql-local() {
+    stop-mysql
+    hab svc load core/mysql \
+        --strategy at-once
+}
+
+echo "    * Use 'start-mysql-remote' to start remote mysql service"
+start-mysql-remote() {
+    stop-mysql
+    hab svc load jarvus/mysql-remote \
+        --strategy at-once
+}
+
+echo "    * Use 'start-runtime-local' to start runtime service bound to local mysql"
+start-runtime-local() {
+    hab svc load "emergence/php-runtime" \
+        --bind=database:mysql.default \
+        --strategy at-once
+}
+
+echo "    * Use 'start-runtime-remote' to start runtime service bound to remote mysql"
+start-runtime-remote() {
+    hab svc load "emergence/php-runtime" \
+        --bind=database:mysql-remote.default \
+        --strategy at-once
+}
+
+echo "    * Use 'start-http' to start http service"
+start-http() {
+    hab svc load emergence/nginx \
+        --bind=runtime:php-runtime.default \
+        --strategy at-once
+}
+
+echo "    * Use 'start-all-local' to start all services individually with local mysql"
+start-all-local() {
+    start-mysql-local && start-runtime-local && start-http
+}
+
+echo "    * Use 'start-all-remote' to start all services individually with remote mysql"
+start-all-remote() {
+    start-mysql-remote && start-runtime-remote && start-http
+}
+
+
+echo
+echo "    * Use 'stop-mysql' to stop just mysql service"
+stop-mysql() {
+    hab svc unload core/mysql
+    hab svc unload jarvus/mysql-remote
+}
+
+echo "    * Use 'stop-runtime' to stop just runtime service"
+stop-runtime() {
+    hab svc unload emergence/php-runtime
+}
+
+echo "    * Use 'stop-http' to stop just http service"
+stop-http() {
+    hab svc unload emergence/nginx
+}
+
+echo "    * Use 'stop-all' to stop everything"
+stop-all() {
+    stop-http
+    stop-runtime
+    stop-mysql
+}
+
+
+echo
+
+echo "    * Use 'shell-mysql-local' to open a mysql shell for the local mysql service"
+shell-mysql-local() {
+    hab pkg exec core/mysql mysql -u root -h 127.0.0.1
+}
+
+echo "    * Use 'shell-mysql-remote' to open a mysql shell for the remote mysql service"
+shell-mysql-remote() {
+    hab pkg exec core/mysql mysql --defaults-extra-file=/hab/svc/mysql-remote/config/client.cnf
+}
+
+echo "    * Use 'shell-runtime' to open a php shell for the studio runtime service"
+shell-runtime() {
+    /root/.composer/vendor/psy/psysh/bin/psysh
+}
+
+
+export EMERGENCE_STUDIO="loaded"
