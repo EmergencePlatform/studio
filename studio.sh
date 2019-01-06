@@ -9,7 +9,7 @@ set -a
 . $(hab pkg path jarvus/hologit)/RUNTIME_ENVIRONMENT
 set +a
 
-exec $(hab pkg path core/node)/bin/node /src/hologit/bin/cli.js \$@
+exec $(hab pkg path core/node)/bin/node "--\${NODE_INSPECT:-inspect}=0.0.0.0:9229" /src/hologit/bin/cli.js \$@
 
 END_OF_SCRIPT
   chmod +x "${HAB_BINLINK_DIR:-/bin}/git-holo"
