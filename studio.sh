@@ -46,7 +46,6 @@ mkdir -m 777 -p /hab/svc/watchman/var
 
 echo
 echo "--> Configuring PsySH for application shell..."
-
 mkdir -p /root/.config/psysh
 cat > /root/.config/psysh/config.php <<- END_OF_SCRIPT
 <?php
@@ -189,8 +188,39 @@ shell-mysql-remote() {
 
 echo "    * Use 'shell-runtime' to open a php shell for the studio runtime service"
 shell-runtime() {
-    /root/.composer/vendor/psy/psysh/bin/psysh
+    hab pkg exec emergence/studio psysh
 }
 
 
+echo
+echo "--> Setting up development commands..."
+
+init-user-config php-runtime "
+    [sites.default.holo]
+    gitDir = \"${EMERGENCE_SITE}/.git\"
+"
+
+echo "    * Use 'update-site' to update the running site from ${EMERGENCE_SITE}"
+update-site() {
+    pushd "${EMERGENCE_SITE}" > /dev/null
+    git holo project emergence-site --working | emergence-php-load --stdin
+    popd > /dev/null
+}
+
+echo "    * Use 'watch-site' to watch the running site in ${EMERGENCE_SITE}"
+watch-site() {
+    pushd "${EMERGENCE_SITE}" > /dev/null
+    git holo project emergence-site --working --watch | xargs -n 1 emergence-php-load
+    popd > /dev/null
+}
+
+
+# overall instructions
+echo
+echo "    For a complete studio debug environment:"
+echo "      start-all-local && watch-site"
+
+
+# final blank line
 export EMERGENCE_STUDIO="loaded"
+echo
