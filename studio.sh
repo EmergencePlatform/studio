@@ -27,7 +27,6 @@ mkdir -m 777 -p /hab/svc/watchman/var
 
 echo
 echo "--> Configuring PsySH for application shell..."
-sed -e "s#\#\!/usr/bin/env php#\#\!$(hab pkg path emergence/php5)/bin/php#" --in-place "/root/.composer/vendor/psy/psysh/bin/psysh"
 
 mkdir -p /root/.config/psysh
 cat > /root/.config/psysh/config.php <<- END_OF_SCRIPT

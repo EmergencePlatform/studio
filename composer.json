@@ -1,0 +1,17 @@
+{
+    "name": "emergence/studio",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Chris Alfano",
+            "email": "chris@jarv.us"
+        }
+    ],
+    "require": {
+        "symfony/console": "^3",
+        "symfony/var-dumper": "^3",
+        "nikic/php-parser": "^3",
+        "psy/psysh": "@stable"
+    }
+}
