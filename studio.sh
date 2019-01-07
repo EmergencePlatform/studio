@@ -1,7 +1,25 @@
+#!/bin/bash
+
+
+echo
 echo "Welcome to Emergence Studio!"
 
 
+# detect environment
+export EMERGENCE_STUDIO="loading"
+if [ -z "${EMERGENCE_SITE}" ]; then
+    EMERGENCE_SITE="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd)"
+    EMERGENCE_SITE="${EMERGENCE_SITE:-/src}"
+fi
+echo "Site: ${EMERGENCE_SITE}"
+export EMERGENCE_SITE
+
+
+# use /src/hologit as hologit client if it exists
 if [ -f /src/hologit/bin/cli.js ]; then
+    echo
+    echo "--> Activating /src/hologit to provide git-holo"
+
   cat > "${HAB_BINLINK_DIR:-/bin}/git-holo" <<- END_OF_SCRIPT
 #!/bin/bash
 
@@ -19,9 +37,10 @@ else
 fi
 
 
+echo
+echo "--> Populating common commands"
 hab pkg binlink core/git
 hab pkg binlink emergence/php-runtime
-hab pkg binlink jarvus/watchman
 mkdir -m 777 -p /hab/svc/watchman/var
 
 
