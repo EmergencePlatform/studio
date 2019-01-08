@@ -7,12 +7,12 @@ echo "Welcome to Emergence Studio!"
 
 # detect environment
 export EMERGENCE_STUDIO="loading"
-if [ -z "${EMERGENCE_SITE}" ]; then
-    EMERGENCE_SITE="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd)"
-    EMERGENCE_SITE="${EMERGENCE_SITE:-/src}"
+if [ -z "${EMERGENCE_REPO}" ]; then
+    EMERGENCE_REPO="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd)"
+    EMERGENCE_REPO="${EMERGENCE_REPO:-/src}"
 fi
-echo "Site: ${EMERGENCE_SITE}"
-export EMERGENCE_SITE
+echo "Site: ${EMERGENCE_REPO}"
+export EMERGENCE_REPO
 
 
 # use /src/hologit as hologit client if it exists
@@ -201,25 +201,25 @@ if [ -f /src/emergence-php-core/composer.json ]; then
         root = \"/src/emergence-php-core\"
 
         [sites.default.holo]
-        gitDir = \"${EMERGENCE_SITE}/.git\"
+        gitDir = \"${EMERGENCE_REPO}/.git\"
     "
 else
     init-user-config php-runtime "
         [sites.default.holo]
-        gitDir = \"${EMERGENCE_SITE}/.git\"
+        gitDir = \"${EMERGENCE_REPO}/.git\"
     "
 fi
 
-echo "    * Use 'update-site' to update the running site from ${EMERGENCE_SITE}"
+echo "    * Use 'update-site' to update the running site from ${EMERGENCE_REPO}"
 update-site() {
-    pushd "${EMERGENCE_SITE}" > /dev/null
+    pushd "${EMERGENCE_REPO}" > /dev/null
     git holo project emergence-site --working | emergence-php-load --stdin
     popd > /dev/null
 }
 
-echo "    * Use 'watch-site' to watch the running site in ${EMERGENCE_SITE}"
+echo "    * Use 'watch-site' to watch the running site in ${EMERGENCE_REPO}"
 watch-site() {
-    pushd "${EMERGENCE_SITE}" > /dev/null
+    pushd "${EMERGENCE_REPO}" > /dev/null
     git holo project emergence-site --working --watch | xargs -n 1 emergence-php-load
     popd > /dev/null
 }
