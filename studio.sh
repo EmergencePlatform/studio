@@ -194,11 +194,21 @@ shell-runtime() {
 
 echo
 echo "--> Setting up development commands..."
+if [ -f /src/emergence-php-core/composer.json ]; then
+    echo "    Using php-core from /src/emergence-php-core"
+    init-user-config php-runtime "
+        [core]
+        root = \"/src/emergence-php-core\"
 
-init-user-config php-runtime "
-    [sites.default.holo]
-    gitDir = \"${EMERGENCE_SITE}/.git\"
-"
+        [sites.default.holo]
+        gitDir = \"${EMERGENCE_SITE}/.git\"
+    "
+else
+    init-user-config php-runtime "
+        [sites.default.holo]
+        gitDir = \"${EMERGENCE_SITE}/.git\"
+    "
+fi
 
 echo "    * Use 'update-site' to update the running site from ${EMERGENCE_SITE}"
 update-site() {
