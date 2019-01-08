@@ -196,6 +196,11 @@ echo
 echo "--> Setting up development commands..."
 if [ -f /src/emergence-php-core/composer.json ]; then
     echo "    Using php-core from /src/emergence-php-core"
+
+    pushd /src/emergence-php-core > /dev/null
+    COMPOSER_ALLOW_SUPERUSER=1 hab pkg exec core/composer composer install
+    popd > /dev/null
+
     init-user-config php-runtime "
         [core]
         root = \"/src/emergence-php-core\"
