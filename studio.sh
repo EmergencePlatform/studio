@@ -25,9 +25,11 @@ if [ -f /src/hologit/bin/cli.js ]; then
   cat > "${HAB_BINLINK_DIR:-/bin}/git-holo" <<- END_OF_SCRIPT
 #!/bin/bash
 
+ENVPATH="\${PATH}"
 set -a
 . $(hab pkg path jarvus/hologit)/RUNTIME_ENVIRONMENT
 set +a
+PATH="\${ENVPATH}:\${PATH}"
 
 exec $(hab pkg path core/node)/bin/node "--\${NODE_INSPECT:-inspect}=0.0.0.0:9229" /src/hologit/bin/cli.js \$@
 
