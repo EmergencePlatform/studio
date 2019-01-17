@@ -199,7 +199,7 @@ shell-runtime() {
 
 echo "    * Use 'load-sql-local [file...]' to load one or more .sql files into the local mysql service"
 load-sql-local() {
-    cat "${1:-/site-data/seed.sql}" | hab pkg exec core/mysql mysql -u root -h 127.0.0.1
+    cat "${1:-/hab/svc/php-runtime/var/site-data/seed.sql}" | hab pkg exec core/mysql mysql -u root -h 127.0.0.1
 }
 
 
