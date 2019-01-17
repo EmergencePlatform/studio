@@ -197,6 +197,23 @@ shell-runtime() {
 }
 
 
+echo "    * Use 'load-sql-local [file...]' to load one or more .sql files into the local mysql service"
+load-sql-local() {
+    cat "${1:-/site-data/seed.sql}" | hab pkg exec core/mysql mysql -u root -h 127.0.0.1
+}
+
+echo "    * Use 'link-site-media [media-path]' to link a media volume into the current site"
+link-site-media() {
+    mkdir -p /hab/svc/php-runtime/var/site/site-data/media
+    chown hab:hab \
+        /hab/svc/php-runtime/var \
+        /hab/svc/php-runtime/var/site \
+        /hab/svc/php-runtime/var/site/site-data \
+        /hab/svc/php-runtime/var/site/site-data/media
+    ln -sf "${1:-/site-data/media}/original" /hab/svc/php-runtime/var/site/site-data/media/
+}
+
+
 echo
 echo "--> Setting up development commands..."
 if [ -f /src/emergence-php-core/composer.json ]; then
