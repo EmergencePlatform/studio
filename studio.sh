@@ -229,14 +229,14 @@ fi
 echo "    * Use 'update-site' to update the running site from ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
 update-site() {
     pushd "${EMERGENCE_REPO}" > /dev/null
-    git holo project "${EMERGENCE_HOLOBRANCH}" --fetch --working | emergence-php-load --stdin
+    git holo project "${EMERGENCE_HOLOBRANCH}" --working | emergence-php-load --stdin
     popd > /dev/null
 }
 
 echo "    * Use 'watch-site' to watch the running site in ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
 watch-site() {
     pushd "${EMERGENCE_REPO}" > /dev/null
-    git holo project "${EMERGENCE_HOLOBRANCH}" --fetch --working --watch | xargs -n 1 emergence-php-load
+    git holo project "${EMERGENCE_HOLOBRANCH}" --working --watch | xargs -n 1 emergence-php-load
     popd > /dev/null
 }
 
