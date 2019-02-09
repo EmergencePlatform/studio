@@ -44,7 +44,7 @@ fi
 echo
 echo "--> Optimizing git performance"
 git config --global core.untrackedCache true
-git config --global core.fsmonitor "$(hab pkg path emergence/studio)/bin/emergence-studio-fsmonitor"
+git config --global core.fsmonitor "$(hab pkg path jarvus/rs-git-fsmonitor)/bin/rs-git-fsmonitor"
 
 
 echo

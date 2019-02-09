@@ -5,7 +5,7 @@ pkg_maintainer="Chris Alfano <chris@jarv.us>"
 pkg_license=("MIT")
 pkg_deps=(
   core/composer
-  core/perl # needed by bin/emergence-studio-fsmonitor
+  jarvus/rs-git-fsmonitor
   jarvus/hologit
   jarvus/watchman
   emergence/php-runtime
@@ -13,21 +13,15 @@ pkg_deps=(
   emergence/nginx
 )
 
-pkg_bin_dirs=(
-  bin
-  vendor/bin
-)
+pkg_bin_dirs=(vendor/bin)
 
 
 do_build() {
   pushd "${PLAN_CONTEXT}" > /dev/null
-  cp -r bin "${CACHE_PATH}/"
   cp composer.{json,lock} "${CACHE_PATH}/"
   popd > /dev/null
 
   pushd "${CACHE_PATH}" > /dev/null
-
-  fix_interpreter bin/emergence-studio-fsmonitor core/perl bin/perl
 
   COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev  --no-interaction --optimize-autoloader --classmap-authoritative
 
