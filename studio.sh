@@ -95,13 +95,20 @@ echo
 echo "--> Configuring services for local development..."
 
 init-user-config() {
+    if [ "$1" == "--force" ]; then
+        shift
+        config_force=true
+    else
+        config_force=false
+    fi
+
     config_pkg_name="$1"
     config_default="$2"
     [ -z "$config_pkg_name" -o -z "$config_default" ] && { echo >&2 'Usage: init-user-config pkg_name "[default]\nconfig = value"'; return 1; }
 
     config_toml_path="/hab/user/${config_pkg_name}/config/user.toml"
 
-    if [ ! -f "$config_toml_path" ]; then
+    if $config_force || [ ! -f "$config_toml_path" ]; then
         echo "    Initializing: $config_toml_path"
         mkdir -p "/hab/user/${config_pkg_name}/config"
         echo -e "$config_default" > "$config_toml_path"
