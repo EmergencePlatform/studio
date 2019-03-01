@@ -7,6 +7,8 @@ echo "Welcome to Emergence Studio!"
 
 # detect environment
 export EMERGENCE_STUDIO="loading"
+export EMERGENCE_HOLOBRANCH="${EMERGENCE_HOLOBRANCH:-emergence-site}"
+
 if [ -z "${EMERGENCE_REPO}" ]; then
     EMERGENCE_REPO="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd)"
     EMERGENCE_REPO="${EMERGENCE_REPO:-/src}"
@@ -14,7 +16,20 @@ fi
 echo "Site: ${EMERGENCE_REPO}"
 export EMERGENCE_REPO
 
-export EMERGENCE_HOLOBRANCH="${EMERGENCE_HOLOBRANCH:-emergence-site}"
+
+if [ -z "${EMERGENCE_CORE}" ]; then
+    if [ -f /src/emergence-php-core/composer.json ]; then
+        EMERGENCE_CORE="/src/emergence-php-core"
+
+        pushd "${EMERGENCE_CORE}" > /dev/null
+        COMPOSER_ALLOW_SUPERUSER=1 hab pkg exec core/composer composer install
+        popd > /dev/null
+    else
+        EMERGENCE_CORE="$(hab pkg path emergence/php-core)"
+    fi
+fi
+echo "Core: ${EMERGENCE_CORE}"
+export EMERGENCE_CORE
 
 
 # use /src/hologit as hologit client if it exists
@@ -110,6 +125,17 @@ init-user-config mysql-remote '
     host = "127.0.0.1"
     port = 3306
 '
+
+-write-php-runtime-config() {
+    init-user-config --force php-runtime "
+        [core]
+        root = \"${EMERGENCE_CORE}\"
+
+        [sites.default.holo]
+        gitDir = \"${EMERGENCE_REPO}/.git\"
+    "
+}
+-write-php-runtime-config
 
 
 echo
@@ -211,26 +237,6 @@ load-sql-local() {
 
 echo
 echo "--> Setting up development commands..."
-if [ -f /src/emergence-php-core/composer.json ]; then
-    echo "    Using php-core from /src/emergence-php-core"
-
-    pushd /src/emergence-php-core > /dev/null
-    COMPOSER_ALLOW_SUPERUSER=1 hab pkg exec core/composer composer install
-    popd > /dev/null
-
-    init-user-config php-runtime "
-        [core]
-        root = \"/src/emergence-php-core\"
-
-        [sites.default.holo]
-        gitDir = \"${EMERGENCE_REPO}/.git\"
-    "
-else
-    init-user-config php-runtime "
-        [sites.default.holo]
-        gitDir = \"${EMERGENCE_REPO}/.git\"
-    "
-fi
 
 echo "    * Use 'update-site' to update the running site from ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
 update-site() {
