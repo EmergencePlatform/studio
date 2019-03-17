@@ -142,7 +142,7 @@ init-user-config mysql-remote '
         gitDir = \"${EMERGENCE_REPO}/.git\"
     "
 }
--write-php-runtime-config
+"-write-php-runtime-config"
 
 
 echo
@@ -269,6 +269,13 @@ load-sql-local() {
 
 echo
 echo "--> Setting up development commands..."
+
+echo "    * Use 'switch-site <repo_path>' to switch environment to running a different site repository"
+switch-site() {
+    export EMERGENCE_REPO="$1"
+    "-write-php-runtime-config"
+    update-site
+}
 
 echo "    * Use 'update-site' to update the running site from ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
 update-site() {
