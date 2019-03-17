@@ -272,9 +272,12 @@ echo "--> Setting up development commands..."
 
 echo "    * Use 'switch-site <repo_path>' to switch environment to running a different site repository"
 switch-site() {
-    export EMERGENCE_REPO="$1"
-    "-write-php-runtime-config"
-    update-site
+    if [ -d "$1" ]; then
+        export EMERGENCE_REPO="$( cd "$1" && pwd)"
+        "-write-php-runtime-config"
+    else
+        >&2 echo "error: $1 does not exist"
+    fi
 }
 
 echo "    * Use 'update-site' to update the running site from ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
