@@ -222,12 +222,12 @@ echo
 
 echo "    * Use 'shell-mysql-local' to open a mysql shell for the local mysql service"
 shell-mysql-local() {
-    hab pkg exec core/mysql mysql -u root -h 127.0.0.1
+    hab pkg exec core/mysql mysql -u root -h 127.0.0.1 "${1:-default}"
 }
 
 echo "    * Use 'shell-mysql-remote' to open a mysql shell for the remote mysql service"
 shell-mysql-remote() {
-    hab pkg exec core/mysql mysql --defaults-extra-file=/hab/svc/mysql-remote/config/client.cnf
+    hab pkg exec core/mysql mysql --defaults-extra-file=/hab/svc/mysql-remote/config/client.cnf "${1:-default}"
 }
 
 echo "    * Use 'shell-runtime' to open a php shell for the studio runtime service"
@@ -238,7 +238,7 @@ shell-runtime() {
 
 echo "    * Use 'load-sql-local [file...]' to load one or more .sql files into the local mysql service"
 load-sql-local() {
-    cat "${1:-/hab/svc/php-runtime/var/site-data/seed.sql}" | hab pkg exec core/mysql mysql -u root -h 127.0.0.1
+    cat "${1:-/hab/svc/php-runtime/var/site-data/seed.sql}" | hab pkg exec core/mysql mysql -u root -h 127.0.0.1 "${2:-default}"
 }
 
 
