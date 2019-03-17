@@ -7,6 +7,8 @@ echo "Welcome to Emergence Studio!"
 
 # detect environment
 export EMERGENCE_STUDIO="loading"
+export EMERGENCE_HOLOBRANCH="${EMERGENCE_HOLOBRANCH:-emergence-site}"
+
 if [ -z "${EMERGENCE_REPO}" ]; then
     EMERGENCE_REPO="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd)"
     EMERGENCE_REPO="${EMERGENCE_REPO:-/src}"
@@ -14,7 +16,20 @@ fi
 echo "Site: ${EMERGENCE_REPO}"
 export EMERGENCE_REPO
 
-export EMERGENCE_HOLOBRANCH="${EMERGENCE_HOLOBRANCH:-emergence-site}"
+
+if [ -z "${EMERGENCE_CORE}" ]; then
+    if [ -f /src/emergence-php-core/composer.json ]; then
+        EMERGENCE_CORE="/src/emergence-php-core"
+
+        pushd "${EMERGENCE_CORE}" > /dev/null
+        COMPOSER_ALLOW_SUPERUSER=1 hab pkg exec core/composer composer install
+        popd > /dev/null
+    else
+        EMERGENCE_CORE="$(hab pkg path emergence/php-core)"
+    fi
+fi
+echo "Core: ${EMERGENCE_CORE}"
+export EMERGENCE_CORE
 
 
 # use /src/hologit as hologit client if it exists
@@ -42,17 +57,17 @@ fi
 
 
 echo
-echo "--> Optimizing git performance"
-git config --global core.untrackedCache true
-git config --global core.fsmonitor "$(hab pkg path jarvus/rs-git-fsmonitor)/bin/rs-git-fsmonitor"
-
-
-echo
 echo "--> Populating common commands"
 hab pkg binlink core/git
 hab pkg binlink jarvus/watchman
 hab pkg binlink emergence/php-runtime
 mkdir -m 777 -p /hab/svc/watchman/var
+
+
+echo
+echo "--> Optimizing git performance"
+git config --global core.untrackedCache true
+git config --global core.fsmonitor "$(hab pkg path jarvus/rs-git-fsmonitor)/bin/rs-git-fsmonitor"
 
 
 echo
@@ -80,13 +95,20 @@ echo
 echo "--> Configuring services for local development..."
 
 init-user-config() {
+    if [ "$1" == "--force" ]; then
+        shift
+        config_force=true
+    else
+        config_force=false
+    fi
+
     config_pkg_name="$1"
     config_default="$2"
     [ -z "$config_pkg_name" -o -z "$config_default" ] && { echo >&2 'Usage: init-user-config pkg_name "[default]\nconfig = value"'; return 1; }
 
     config_toml_path="/hab/user/${config_pkg_name}/config/user.toml"
 
-    if [ ! -f "$config_toml_path" ]; then
+    if $config_force || [ ! -f "$config_toml_path" ]; then
         echo "    Initializing: $config_toml_path"
         mkdir -p "/hab/user/${config_pkg_name}/config"
         echo -e "$config_default" > "$config_toml_path"
@@ -110,6 +132,17 @@ init-user-config mysql-remote '
     host = "127.0.0.1"
     port = 3306
 '
+
+-write-php-runtime-config() {
+    init-user-config --force php-runtime "
+        [core]
+        root = \"${EMERGENCE_CORE}\"
+
+        [sites.default.holo]
+        gitDir = \"${EMERGENCE_REPO}/.git\"
+    "
+}
+-write-php-runtime-config
 
 
 echo
@@ -211,26 +244,6 @@ load-sql-local() {
 
 echo
 echo "--> Setting up development commands..."
-if [ -f /src/emergence-php-core/composer.json ]; then
-    echo "    Using php-core from /src/emergence-php-core"
-
-    pushd /src/emergence-php-core > /dev/null
-    COMPOSER_ALLOW_SUPERUSER=1 hab pkg exec core/composer composer install
-    popd > /dev/null
-
-    init-user-config php-runtime "
-        [core]
-        root = \"/src/emergence-php-core\"
-
-        [sites.default.holo]
-        gitDir = \"${EMERGENCE_REPO}/.git\"
-    "
-else
-    init-user-config php-runtime "
-        [sites.default.holo]
-        gitDir = \"${EMERGENCE_REPO}/.git\"
-    "
-fi
 
 echo "    * Use 'update-site' to update the running site from ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
 update-site() {
