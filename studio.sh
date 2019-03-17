@@ -57,17 +57,17 @@ fi
 
 
 echo
-echo "--> Optimizing git performance"
-git config --global core.untrackedCache true
-git config --global core.fsmonitor "$(hab pkg path jarvus/rs-git-fsmonitor)/bin/rs-git-fsmonitor"
-
-
-echo
 echo "--> Populating common commands"
 hab pkg binlink core/git
 hab pkg binlink jarvus/watchman
 hab pkg binlink emergence/php-runtime
 mkdir -m 777 -p /hab/svc/watchman/var
+
+
+echo
+echo "--> Optimizing git performance"
+git config --global core.untrackedCache true
+git config --global core.fsmonitor "$(hab pkg path jarvus/rs-git-fsmonitor)/bin/rs-git-fsmonitor"
 
 
 echo
