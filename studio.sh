@@ -147,11 +147,16 @@ init-user-config mysql-remote '
 
 echo
 
-echo "    * Use 'start-mysql-local' to start local mysql service"
-start-mysql-local() {
+echo "    * Use 'start-mysql' to start local mysql service"
+start-mysql() {
     stop-mysql
     hab svc load core/mysql \
         --strategy at-once
+}
+start-mysql-local() {
+    >&2 echo "warning: start-mysql-local has been shortened to start-mysql"
+    >&2 echo
+    start-mysql "$@"
 }
 
 echo "    * Use 'start-mysql-remote' to start remote mysql service"
@@ -161,11 +166,16 @@ start-mysql-remote() {
         --strategy at-once
 }
 
-echo "    * Use 'start-runtime-local' to start runtime service bound to local mysql"
-start-runtime-local() {
+echo "    * Use 'start-runtime' to start runtime service bound to local mysql"
+start-runtime() {
     hab svc load "emergence/php-runtime" \
         --bind=database:mysql.default \
         --strategy at-once
+}
+start-runtime-local() {
+    >&2 echo "warning: start-runtime-local has been shortened to start-runtime"
+    >&2 echo
+    start-runtime "$@"
 }
 
 echo "    * Use 'start-runtime-remote' to start runtime service bound to remote mysql"
@@ -182,9 +192,14 @@ start-http() {
         --strategy at-once
 }
 
-echo "    * Use 'start-all-local' to start all services individually with local mysql"
+echo "    * Use 'start-all' to start all services individually with local mysql"
+start-all() {
+    start-mysql && start-runtime && start-http
+}
 start-all-local() {
-    start-mysql-local && start-runtime-local && start-http
+    >&2 echo "warning: start-all-local has been shortened to start-all"
+    >&2 echo
+    start-all "$@"
 }
 
 echo "    * Use 'start-all-remote' to start all services individually with remote mysql"
@@ -220,9 +235,14 @@ stop-all() {
 
 echo
 
-echo "    * Use 'shell-mysql-local' to open a mysql shell for the local mysql service"
-shell-mysql-local() {
+echo "    * Use 'shell-mysql' to open a mysql shell for the local mysql service"
+shell-mysql() {
     hab pkg exec core/mysql mysql -u root -h 127.0.0.1 "${1:-default}"
+}
+shell-mysql-local() {
+    >&2 echo "warning: shell-mysql-local has been shortened to shell-mysql"
+    >&2 echo
+    shell-mysql "$@"
 }
 
 echo "    * Use 'shell-mysql-remote' to open a mysql shell for the remote mysql service"
@@ -236,9 +256,14 @@ shell-runtime() {
 }
 
 
-echo "    * Use 'load-sql-local [file...]' to load one or more .sql files into the local mysql service"
-load-sql-local() {
+echo "    * Use 'load-sql [file...]' to load one or more .sql files into the local mysql service"
+load-sql() {
     hab pkg exec core/mysql mysql -u root -h 127.0.0.1 "${2:-default}" < "${1:-/hab/svc/php-runtime/var/site-data/seed.sql}"
+}
+load-sql-local() {
+    >&2 echo "warning: load-sql-local has been shortened to load-sql"
+    >&2 echo
+    load-sql "$@"
 }
 
 
@@ -263,7 +288,8 @@ watch-site() {
 # overall instructions
 echo
 echo "    For a complete studio debug environment:"
-echo "      start-all-local && watch-site"
+echo "      start-all"
+echo "      update-site # or watch-site"
 
 
 # final blank line
