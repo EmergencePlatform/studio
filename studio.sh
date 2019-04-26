@@ -256,9 +256,19 @@ shell-runtime() {
 }
 
 
-echo "    * Use 'load-sql [file...]' to load one or more .sql files into the local mysql service"
+echo "    * Use 'load-sql [file...|URL|site]' to load one or more .sql files into the local mysql service"
 load-sql() {
-    hab pkg exec core/mysql mysql -u root -h 127.0.0.1 "${2:-default}" < "${1:-/hab/svc/php-runtime/var/site-data/seed.sql}"
+    LOAD_SQL_MYSQL="hab pkg exec core/mysql mysql -u root -h 127.0.0.1 ${2:-default}"
+
+    if [[ "${1}" =~ ^https?://[^/]+/?$ ]]; then
+        printf "Developer username: "
+        read LOAD_SQL_USER
+        wget --user="${LOAD_SQL_USER}" --ask-password "${1%/}/site-admin/database/dump.sql" -O - | $LOAD_SQL_MYSQL
+    elif [[ "${1}" =~ ^https?://[^/]+/.+ ]]; then
+        wget "${1}" -O - | $LOAD_SQL_MYSQL
+    else
+        cat "${1:-/hab/svc/php-runtime/var/site-data/seed.sql}" | $LOAD_SQL_MYSQL
+    fi
 }
 load-sql-local() {
     >&2 echo "warning: load-sql-local has been shortened to load-sql"
