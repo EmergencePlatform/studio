@@ -32,6 +32,14 @@ echo "Core: ${EMERGENCE_CORE}"
 export EMERGENCE_CORE
 
 
+# check ownership of mounted site-data
+if [ -d /hab/svc/php-runtime/var ]; then
+    chown hab:hab \
+        "/hab/svc/php-runtime/var" \
+        "/hab/svc/php-runtime/var/site-data"
+fi
+
+
 # use /src/hologit as hologit client if it exists
 if [ -f /src/hologit/bin/cli.js ]; then
     echo
