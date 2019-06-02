@@ -266,7 +266,11 @@ shell-runtime() {
 
 echo "    * Use 'load-sql [file...|URL|site]' to load one or more .sql files into the local mysql service"
 load-sql() {
-    LOAD_SQL_MYSQL="hab pkg exec core/mysql mysql -u root -h 127.0.0.1 ${2:-default}"
+    LOAD_SQL_MYSQL="hab pkg exec core/mysql mysql -u root -h 127.0.0.1"
+
+    DATABASE_NAME="${2:-default}"
+    echo "CREATE DATABASE IF NOT EXISTS \`${DATABASE_NAME}\`;" | $LOAD_SQL_MYSQL;
+    LOAD_SQL_MYSQL="${LOAD_SQL_MYSQL} ${DATABASE_NAME}"
 
     if [[ "${1}" =~ ^https?://[^/]+/?$ ]]; then
         printf "Developer username: "
