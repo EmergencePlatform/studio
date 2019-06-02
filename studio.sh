@@ -294,6 +294,11 @@ promote-user() {
     echo "UPDATE people SET AccountLevel = '${2:-Developer}' WHERE Username = '${1}'" | hab pkg exec core/mysql mysql -u root -h 127.0.0.1 "${3:-default}"
 }
 
+echo "    * Use 'reset-database [database_name]' to drop and recreate the MySQL database"
+reset-mysql() {
+    echo "DROP DATABASE IF EXISTS \`"${1:-default}"\`; CREATE DATABASE \`"${1:-default}"\`;" | hab pkg exec core/mysql mysql -u root -h 127.0.0.1
+}
+
 
 echo
 echo "--> Setting up development commands..."
