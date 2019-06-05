@@ -266,7 +266,11 @@ shell-runtime() {
 
 echo "    * Use 'load-sql [file...|URL|site]' to load one or more .sql files into the local mysql service"
 load-sql() {
-    LOAD_SQL_MYSQL="hab pkg exec core/mysql mysql -u root -h 127.0.0.1 ${2:-default}"
+    LOAD_SQL_MYSQL="hab pkg exec core/mysql mysql -u root -h 127.0.0.1"
+
+    DATABASE_NAME="${2:-default}"
+    echo "CREATE DATABASE IF NOT EXISTS \`${DATABASE_NAME}\`;" | $LOAD_SQL_MYSQL;
+    LOAD_SQL_MYSQL="${LOAD_SQL_MYSQL} ${DATABASE_NAME}"
 
     if [[ "${1}" =~ ^https?://[^/]+/?$ ]]; then
         printf "Developer username: "
@@ -288,6 +292,11 @@ load-sql-local() {
 echo "    * Use 'promote-user <username> [account_level]' to promote a user in the database"
 promote-user() {
     echo "UPDATE people SET AccountLevel = '${2:-Developer}' WHERE Username = '${1}'" | hab pkg exec core/mysql mysql -u root -h 127.0.0.1 "${3:-default}"
+}
+
+echo "    * Use 'reset-database [database_name]' to drop and recreate the MySQL database"
+reset-mysql() {
+    echo "DROP DATABASE IF EXISTS \`"${1:-default}"\`; CREATE DATABASE \`"${1:-default}"\`;" | hab pkg exec core/mysql mysql -u root -h 127.0.0.1
 }
 
 
