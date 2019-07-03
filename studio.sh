@@ -71,6 +71,11 @@ hab pkg binlink jarvus/watchman
 hab pkg binlink emergence/php-runtime
 mkdir -m 777 -p /hab/svc/watchman/var
 
+echo
+echo "--> Populating /bin/{chmod,stat} commands for Docker for Windows watch workaround"
+echo "    See: https://gist.github.com/themightychris/8a016e655160598ede29b2cac7c04668"
+hab pkg binlink core/coreutils -d /bin chmod
+hab pkg binlink core/coreutils -d /bin stat
 
 echo
 echo "--> Optimizing git performance"

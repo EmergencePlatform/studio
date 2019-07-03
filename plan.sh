@@ -4,6 +4,7 @@ pkg_version="0.4.0"
 pkg_maintainer="Chris Alfano <chris@jarv.us>"
 pkg_license=("MIT")
 pkg_deps=(
+  core/coreutils
   core/composer
   jarvus/rs-git-fsmonitor
   jarvus/hologit
