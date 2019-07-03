@@ -2,10 +2,23 @@
 
 
 echo
-echo "Welcome to Emergence Studio!"
+echo "--> Populating common commands"
+hab pkg binlink core/git
+hab pkg binlink jarvus/watchman
+hab pkg binlink emergence/php-runtime
+mkdir -m 777 -p /hab/svc/watchman/var
 
 
-# detect environment
+echo
+echo "--> Populating /bin/{chmod,stat} commands for Docker for Windows watch workaround"
+echo "    See: https://gist.github.com/themightychris/8a016e655160598ede29b2cac7c04668"
+hab pkg binlink core/coreutils -d /bin chmod
+hab pkg binlink core/coreutils -d /bin stat
+
+
+echo
+echo "--> Welcome to Emergence Studio! Detecting environment..."
+
 export EMERGENCE_STUDIO="loading"
 export EMERGENCE_HOLOBRANCH="${EMERGENCE_HOLOBRANCH:-emergence-site}"
 
@@ -13,9 +26,8 @@ if [ -z "${EMERGENCE_REPO}" ]; then
     EMERGENCE_REPO="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd)"
     EMERGENCE_REPO="${EMERGENCE_REPO:-/src}"
 fi
-echo "Site: ${EMERGENCE_REPO}"
+echo "    EMERGENCE_REPO=${EMERGENCE_REPO}"
 export EMERGENCE_REPO
-
 
 if [ -z "${EMERGENCE_CORE}" ]; then
     if [ -f /src/emergence-php-core/composer.json ]; then
@@ -28,7 +40,7 @@ if [ -z "${EMERGENCE_CORE}" ]; then
         EMERGENCE_CORE="$(hab pkg path emergence/php-core)"
     fi
 fi
-echo "Core: ${EMERGENCE_CORE}"
+echo "    EMERGENCE_CORE=${EMERGENCE_CORE}"
 export EMERGENCE_CORE
 
 
@@ -58,18 +70,10 @@ exec $(hab pkg path core/node)/bin/node "--\${NODE_INSPECT:-inspect}=0.0.0.0:922
 
 END_OF_SCRIPT
   chmod +x "${HAB_BINLINK_DIR:-/bin}/git-holo"
-  echo "Linked ${HAB_BINLINK_DIR:-/bin}/git-holo to src/hologit/bin/cli.js"
+  echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo to /src/hologit/bin/cli.js"
 else
   hab pkg binlink jarvus/hologit
 fi
-
-
-echo
-echo "--> Populating common commands"
-hab pkg binlink core/git
-hab pkg binlink jarvus/watchman
-hab pkg binlink emergence/php-runtime
-mkdir -m 777 -p /hab/svc/watchman/var
 
 
 echo
@@ -316,14 +320,14 @@ switch-site() {
 echo "    * Use 'update-site' to update the running site from ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
 update-site() {
     pushd "${EMERGENCE_REPO}" > /dev/null
-    git holo project "${EMERGENCE_HOLOBRANCH}" --working | emergence-php-load --stdin
+    git holo project "${EMERGENCE_HOLOBRANCH}" --working ${EMERGENCE_FETCH:+--fetch} | emergence-php-load --stdin
     popd > /dev/null
 }
 
 echo "    * Use 'watch-site' to watch the running site in ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
 watch-site() {
     pushd "${EMERGENCE_REPO}" > /dev/null
-    git holo project "${EMERGENCE_HOLOBRANCH}" --working --watch | xargs -n 1 emergence-php-load
+    git holo project "${EMERGENCE_HOLOBRANCH}" --working --watch ${EMERGENCE_FETCH:+--fetch} | xargs -n 1 emergence-php-load
     popd > /dev/null
 }
 
@@ -331,7 +335,7 @@ watch-site() {
 # overall instructions
 echo
 echo "    For a complete studio debug environment:"
-echo "      start-all"
+echo "      start-all # wait a moment for services to start up"
 echo "      update-site # or watch-site"
 
 
