@@ -43,12 +43,17 @@ fi
 echo "    EMERGENCE_CORE=${EMERGENCE_CORE}"
 export EMERGENCE_CORE
 
+if [ -z "${EMERGENCE_RUNTIME}" ]; then
+    EMERGENCE_RUNTIME="emergence/php-runtime"
+fi
+echo "    EMERGENCE_RUNTIME=${EMERGENCE_RUNTIME}"
+
 
 # check ownership of mounted site-data
-if [ -d /hab/svc/php-runtime/var ]; then
+if [ -d "/hab/svc/${EMERGENCE_RUNTIME#*/}/var" ]; then
     chown hab:hab \
-        "/hab/svc/php-runtime/var" \
-        "/hab/svc/php-runtime/var/site-data"
+        "/hab/svc/${EMERGENCE_RUNTIME#*/}/var" \
+        "/hab/svc/${EMERGENCE_RUNTIME#*/}/var/site-data"
 fi
 
 
@@ -96,7 +101,7 @@ return [
     ],
 
     'defaultIncludes' => [
-        '/hab/svc/php-runtime/config/initialize.php',
+        '/hab/svc/${EMERGENCE_RUNTIME#*/}/config/initialize.php',
     ]
 ];
 
@@ -145,8 +150,8 @@ init-user-config mysql-remote '
     port = 3306
 '
 
--write-php-runtime-config() {
-    init-user-config --force php-runtime "
+-write-runtime-config() {
+    init-user-config --force ${EMERGENCE_RUNTIME#*/} "
         [core]
         root = \"${EMERGENCE_CORE}\"
 
@@ -154,14 +159,13 @@ init-user-config mysql-remote '
         gitDir = \"${EMERGENCE_REPO}/.git\"
     "
 }
-"-write-php-runtime-config"
+"-write-runtime-config"
 
 
 echo
 
 echo "    * Use 'start-mysql' to start local mysql service"
 start-mysql() {
-    stop-mysql
     hab svc load core/mysql \
         --strategy at-once
 }
@@ -173,15 +177,14 @@ start-mysql-local() {
 
 echo "    * Use 'start-mysql-remote' to start remote mysql service"
 start-mysql-remote() {
-    stop-mysql
     hab svc load jarvus/mysql-remote \
         --strategy at-once
 }
 
 echo "    * Use 'start-runtime' to start runtime service bound to local mysql"
 start-runtime() {
-    hab svc load "emergence/php-runtime" \
-        --bind=database:mysql.default \
+    hab svc load "${1:-$EMERGENCE_RUNTIME}" \
+        --bind="database:${2:-mysql.default}" \
         --strategy at-once
 }
 start-runtime-local() {
@@ -192,15 +195,13 @@ start-runtime-local() {
 
 echo "    * Use 'start-runtime-remote' to start runtime service bound to remote mysql"
 start-runtime-remote() {
-    hab svc load "emergence/php-runtime" \
-        --bind=database:mysql-remote.default \
-        --strategy at-once
+    start-runtime "${EMERGENCE_RUNTIME}" "mysql-remote.default"
 }
 
 echo "    * Use 'start-http' to start http service"
 start-http() {
     hab svc load emergence/nginx \
-        --bind=runtime:php-runtime.default \
+        --bind="runtime:${1:-${EMERGENCE_RUNTIME#*/}.default}" \
         --strategy at-once
 }
 
@@ -229,7 +230,7 @@ stop-mysql() {
 
 echo "    * Use 'stop-runtime' to stop just runtime service"
 stop-runtime() {
-    hab svc unload emergence/php-runtime
+    hab svc unload "${EMERGENCE_RUNTIME}"
 }
 
 echo "    * Use 'stop-http' to stop just http service"
@@ -283,7 +284,7 @@ load-sql() {
     elif [[ "${1}" =~ ^https?://[^/]+/.+ ]]; then
         wget "${1}" -O - | $LOAD_SQL_MYSQL
     else
-        cat "${1:-/hab/svc/php-runtime/var/site-data/seed.sql}" | $LOAD_SQL_MYSQL
+        cat "${1:-/hab/svc/${EMERGENCE_RUNTIME#*/}/var/site-data/seed.sql}" | $LOAD_SQL_MYSQL
     fi
 }
 load-sql-local() {
@@ -311,7 +312,7 @@ echo "    * Use 'switch-site <repo_path>' to switch environment to running a dif
 switch-site() {
     if [ -d "$1" ]; then
         export EMERGENCE_REPO="$( cd "$1" && pwd)"
-        "-write-php-runtime-config"
+        "-write-runtime-config"
     else
         >&2 echo "error: $1 does not exist"
     fi
