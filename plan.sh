@@ -6,6 +6,7 @@ pkg_license=("MIT")
 pkg_deps=(
   core/coreutils
   core/composer
+  core/mysql-client
   jarvus/rs-git-fsmonitor
   jarvus/hologit
   jarvus/watchman
