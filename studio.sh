@@ -144,8 +144,8 @@ init-user-config mysql '
 '
 
 init-user-config mysql-remote '
-    app_username = "emergence-php-runtime"
-    app_password = "emergence-php-runtime"
+    username = "emergence-php-runtime"
+    password = "emergence-php-runtime"
     host = "127.0.0.1"
     port = 3306
 '
