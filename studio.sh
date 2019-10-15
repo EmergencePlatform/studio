@@ -101,7 +101,7 @@ init-user-config() {
 
 init-user-config nginx '
     [http.listen]
-    port = 7080
+    port = 80
 '
 
 init-user-config mysql '
