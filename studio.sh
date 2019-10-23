@@ -165,6 +165,10 @@ start-mysql() {
     export DB_DATABASE="${2:-${DB_DATABASE:-default}}"
     ln -sf "/hab/svc/${DB_SERVICE#*/}/config/client.cnf" ~/.my.cnf
 
+    if [ -d "/hab/svc/${DB_SERVICE#*/}/data" ]; then
+        chown -v hab:hab "/hab/svc/${DB_SERVICE#*/}/data"
+    fi
+
     hab svc load "${DB_SERVICE}" \
         --strategy at-once \
         --force
