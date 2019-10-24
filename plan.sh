@@ -10,8 +10,7 @@ pkg_deps=(
   jarvus/rs-git-fsmonitor
   jarvus/hologit
   jarvus/watchman
-  emergence/php-runtime/0.3
-  emergence/php5
+  emergence/php-runtime
   emergence/nginx
 )
 
