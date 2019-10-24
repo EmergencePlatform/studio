@@ -123,6 +123,9 @@ init-user-config mysql-remote '
             [core]
             root = \"${EMERGENCE_CORE}\"
 
+            [sites.default]
+            database = \"${DB_DATABASE:-default}\"
+
             [sites.default.holo]
             gitDir = \"${EMERGENCE_REPO}/.git\"
         "
@@ -130,6 +133,9 @@ init-user-config mysql-remote '
         init-user-config --force ${EMERGENCE_RUNTIME#*/} "
             [core]
             root = \"${EMERGENCE_CORE}\"
+
+            [sites.default]
+            database = \"${DB_DATABASE:-default}\"
         "
     fi
 
