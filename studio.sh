@@ -105,14 +105,14 @@ init-user-config nginx '
 '
 
 init-user-config mysql '
-    app_username = "emergence-php-runtime"
-    app_password = "emergence-php-runtime"
+    app_username = "admin"
+    app_password = "admin"
     bind = "0.0.0.0"
 '
 
 init-user-config mysql-remote '
-    username = "emergence-php-runtime"
-    password = "emergence-php-runtime"
+    username = "admin"
+    password = "admin"
     host = "127.0.0.1"
     port = 3306
 '
