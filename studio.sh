@@ -6,6 +6,7 @@ echo "--> Populating common commands"
 hab pkg binlink core/git
 hab pkg binlink jarvus/watchman
 hab pkg binlink emergence/php-runtime
+hab pkg binlink core/mysql-client mysql
 mkdir -m 777 -p /hab/svc/watchman/var
 
 
@@ -44,14 +45,6 @@ echo "    EMERGENCE_CORE=${EMERGENCE_CORE}"
 export EMERGENCE_CORE
 
 
-# check ownership of mounted site-data
-if [ -d /hab/svc/php-runtime/var ]; then
-    chown hab:hab \
-        "/hab/svc/php-runtime/var" \
-        "/hab/svc/php-runtime/var/site-data"
-fi
-
-
 # use /src/hologit as hologit client if it exists
 if [ -f /src/hologit/bin/cli.js ]; then
     echo
@@ -83,27 +76,6 @@ git config --global core.fsmonitor "$(hab pkg path jarvus/rs-git-fsmonitor)/bin/
 
 
 echo
-echo "--> Configuring PsySH for application shell..."
-mkdir -p /root/.config/psysh
-cat > /root/.config/psysh/config.php <<- END_OF_SCRIPT
-<?php
-
-date_default_timezone_set('America/New_York');
-
-return [
-    'commands' => [
-        new \Psy\Command\ParseCommand,
-    ],
-
-    'defaultIncludes' => [
-        '/hab/svc/php-runtime/config/initialize.php',
-    ]
-];
-
-END_OF_SCRIPT
-
-
-echo
 echo "--> Configuring services for local development..."
 
 init-user-config() {
@@ -123,113 +95,141 @@ init-user-config() {
     if $config_force || [ ! -f "$config_toml_path" ]; then
         echo "    Initializing: $config_toml_path"
         mkdir -p "/hab/user/${config_pkg_name}/config"
-        echo -e "$config_default" > "$config_toml_path"
+        echo -e "$config_default" | awk '{$1=$1};1NF' | awk 'NF' > "$config_toml_path"
     fi
 }
 
 init-user-config nginx '
     [http.listen]
-    port = 7080
+    port = 80
 '
 
 init-user-config mysql '
-    app_username = "emergence-php-runtime"
-    app_password = "emergence-php-runtime"
+    app_username = "admin"
+    app_password = "admin"
     bind = "0.0.0.0"
 '
 
 init-user-config mysql-remote '
-    app_username = "emergence-php-runtime"
-    app_password = "emergence-php-runtime"
+    username = "admin"
+    password = "admin"
     host = "127.0.0.1"
     port = 3306
 '
 
--write-php-runtime-config() {
-    init-user-config --force php-runtime "
-        [core]
-        root = \"${EMERGENCE_CORE}\"
+-write-runtime-config() {
+    if [ "${EMERGENCE_RUNTIME}" == "emergence/php-runtime" ]; then
+        init-user-config --force ${EMERGENCE_RUNTIME#*/} "
+            [core]
+            root = \"${EMERGENCE_CORE}\"
 
-        [sites.default.holo]
-        gitDir = \"${EMERGENCE_REPO}/.git\"
-    "
+            [sites.default]
+            database = \"${DB_DATABASE:-default}\"
+
+            [sites.default.holo]
+            gitDir = \"${EMERGENCE_REPO}/.git\"
+        "
+    else
+        init-user-config --force ${EMERGENCE_RUNTIME#*/} "
+            [core]
+            root = \"${EMERGENCE_CORE}\"
+
+            [sites.default]
+            database = \"${DB_DATABASE:-default}\"
+        "
+    fi
+
+    mkdir -p /root/.config/psysh
+    cat > /root/.config/psysh/config.php <<- END_OF_SCRIPT
+<?php
+
+    date_default_timezone_set('America/New_York');
+
+    return [
+        'commands' => [
+            new \Psy\Command\ParseCommand,
+        ],
+
+        'defaultIncludes' => [
+            '/hab/svc/${EMERGENCE_RUNTIME#*/}/config/initialize.php',
+        ]
+    ];
+END_OF_SCRIPT
 }
-"-write-php-runtime-config"
+"-write-runtime-config"
 
 
 echo
 
-echo "    * Use 'start-mysql' to start local mysql service"
+echo "    * Use 'start-mysql [pkg] [db]' to load a MySQL database service"
 start-mysql() {
-    stop-mysql
-    hab svc load core/mysql \
-        --strategy at-once
-}
-start-mysql-local() {
-    >&2 echo "warning: start-mysql-local has been shortened to start-mysql"
-    >&2 echo
-    start-mysql "$@"
+    if [ -n "${DB_SERVICE}" ] && hab svc status "${DB_SERVICE}" > /dev/null 2>&1; then
+        hab svc unload "${DB_SERVICE}"
+    fi
+
+    export DB_SERVICE="${1:-${DB_SERVICE:-core/mysql}}"
+    export DB_DATABASE="${2:-${DB_DATABASE:-default}}"
+    ln -sf "/hab/svc/${DB_SERVICE#*/}/config/client.cnf" ~/.my.cnf
+
+    if [ -d "/hab/svc/${DB_SERVICE#*/}/data" ]; then
+        chown -v hab:hab "/hab/svc/${DB_SERVICE#*/}/data"
+    fi
+
+    hab svc load "${DB_SERVICE}" \
+        --strategy at-once \
+        --force
 }
 
-echo "    * Use 'start-mysql-remote' to start remote mysql service"
+echo "    * Use 'start-mysql-remote [db]' to login to a remote MySQL database"
 start-mysql-remote() {
-    stop-mysql
-    hab svc load jarvus/mysql-remote \
-        --strategy at-once
+    vim "/hab/user/mysql-remote/config/user.toml"
+    start-mysql "jarvus/mysql-remote" "${1}"
 }
 
-echo "    * Use 'start-runtime' to start runtime service bound to local mysql"
+echo "    * Use 'start-runtime [pkg]' to start runtime"
 start-runtime() {
-    hab svc load "emergence/php-runtime" \
-        --bind=database:mysql.default \
-        --strategy at-once
-}
-start-runtime-local() {
-    >&2 echo "warning: start-runtime-local has been shortened to start-runtime"
-    >&2 echo
-    start-runtime "$@"
-}
+    if [ -n "${EMERGENCE_RUNTIME}" ] && hab svc status "${EMERGENCE_RUNTIME}" > /dev/null 2>&1; then
+        hab svc unload "${EMERGENCE_RUNTIME}"
+    fi
 
-echo "    * Use 'start-runtime-remote' to start runtime service bound to remote mysql"
-start-runtime-remote() {
-    hab svc load "emergence/php-runtime" \
-        --bind=database:mysql-remote.default \
-        --strategy at-once
+    export EMERGENCE_RUNTIME="${1:-${EMERGENCE_RUNTIME:-emergence/php-runtime}}"
+
+    hab svc load "${1:-$EMERGENCE_RUNTIME}" \
+        --bind="database:${2:-${DB_SERVICE#*/}.default}" \
+        --strategy at-once \
+        --force
+
+    "-write-runtime-config"
 }
 
 echo "    * Use 'start-http' to start http service"
 start-http() {
+    if [ -z "${EMERGENCE_RUNTIME}" ]; then
+        echo "Cannot start-http, EMERGENCE_RUNTIME is not initialized, start-runtime first"
+        return 1
+    fi
+
     hab svc load emergence/nginx \
-        --bind=runtime:php-runtime.default \
-        --strategy at-once
+        --bind="runtime:${1:-${EMERGENCE_RUNTIME#*/}.default}" \
+        --strategy at-once \
+        --force
 }
 
-echo "    * Use 'start-all' to start all services individually with local mysql"
+echo "    * Use 'start-all' to start all services"
 start-all() {
     start-mysql && start-runtime && start-http
-}
-start-all-local() {
-    >&2 echo "warning: start-all-local has been shortened to start-all"
-    >&2 echo
-    start-all "$@"
-}
-
-echo "    * Use 'start-all-remote' to start all services individually with remote mysql"
-start-all-remote() {
-    start-mysql-remote && start-runtime-remote && start-http
 }
 
 
 echo
 echo "    * Use 'stop-mysql' to stop just mysql service"
 stop-mysql() {
-    hab svc unload core/mysql
-    hab svc unload jarvus/mysql-remote
+    hab svc unload "${DB_SERVICE}"
 }
 
 echo "    * Use 'stop-runtime' to stop just runtime service"
 stop-runtime() {
-    hab svc unload emergence/php-runtime
+    hab svc unload "${EMERGENCE_RUNTIME}"
 }
 
 echo "    * Use 'stop-http' to stop just http service"
@@ -249,17 +249,7 @@ echo
 
 echo "    * Use 'shell-mysql' to open a mysql shell for the local mysql service"
 shell-mysql() {
-    hab pkg exec core/mysql mysql -u root -h 127.0.0.1 "${1:-default}"
-}
-shell-mysql-local() {
-    >&2 echo "warning: shell-mysql-local has been shortened to shell-mysql"
-    >&2 echo
-    shell-mysql "$@"
-}
-
-echo "    * Use 'shell-mysql-remote' to open a mysql shell for the remote mysql service"
-shell-mysql-remote() {
-    hab pkg exec core/mysql mysql --defaults-extra-file=/hab/svc/mysql-remote/config/client.cnf "${1:-default}"
+    hab pkg exec "${DB_SERVICE}" mysql "${1:-$DB_DATABASE}" $@
 }
 
 echo "    * Use 'shell-runtime' to open a php shell for the studio runtime service"
@@ -270,9 +260,9 @@ shell-runtime() {
 
 echo "    * Use 'load-sql [file...|URL|site]' to load one or more .sql files into the local mysql service"
 load-sql() {
-    LOAD_SQL_MYSQL="hab pkg exec core/mysql mysql -u root -h 127.0.0.1"
+    LOAD_SQL_MYSQL="hab pkg exec ${DB_SERVICE} mysql"
 
-    DATABASE_NAME="${2:-default}"
+    DATABASE_NAME="${2:-$DB_DATABASE}"
     echo "CREATE DATABASE IF NOT EXISTS \`${DATABASE_NAME}\`;" | $LOAD_SQL_MYSQL;
     LOAD_SQL_MYSQL="${LOAD_SQL_MYSQL} ${DATABASE_NAME}"
 
@@ -282,25 +272,20 @@ load-sql() {
         wget --user="${LOAD_SQL_USER}" --ask-password "${1%/}/site-admin/database/dump.sql" -O - | $LOAD_SQL_MYSQL
     elif [[ "${1}" =~ ^https?://[^/]+/.+ ]]; then
         wget "${1}" -O - | $LOAD_SQL_MYSQL
-    else
-        cat "${1:-/hab/svc/php-runtime/var/site-data/seed.sql}" | $LOAD_SQL_MYSQL
+    elif [ -n "${EMERGENCE_RUNTIME}" ]; then
+        cat "${1:-/hab/svc/${EMERGENCE_RUNTIME#*/}/var/site-data/seed.sql}" | $LOAD_SQL_MYSQL
     fi
-}
-load-sql-local() {
-    >&2 echo "warning: load-sql-local has been shortened to load-sql"
-    >&2 echo
-    load-sql "$@"
 }
 
 
 echo "    * Use 'promote-user <username> [account_level]' to promote a user in the database"
 promote-user() {
-    echo "UPDATE people SET AccountLevel = '${2:-Developer}' WHERE Username = '${1}'" | hab pkg exec core/mysql mysql -u root -h 127.0.0.1 "${3:-default}"
+    echo "UPDATE people SET AccountLevel = '${2:-Developer}' WHERE Username = '${1}'" | hab pkg exec "${DB_SERVICE}" mysql "${3:-$DB_DATABASE}"
 }
 
 echo "    * Use 'reset-database [database_name]' to drop and recreate the MySQL database"
 reset-mysql() {
-    echo "DROP DATABASE IF EXISTS \`"${1:-default}"\`; CREATE DATABASE \`"${1:-default}"\`;" | hab pkg exec core/mysql mysql -u root -h 127.0.0.1
+    echo "DROP DATABASE IF EXISTS \`"${1:-$DB_DATABASE}"\`; CREATE DATABASE \`"${1:-$DB_DATABASE}"\`;" | hab pkg exec "${DB_SERVICE}" mysql
 }
 
 
@@ -311,7 +296,7 @@ echo "    * Use 'switch-site <repo_path>' to switch environment to running a dif
 switch-site() {
     if [ -d "$1" ]; then
         export EMERGENCE_REPO="$( cd "$1" && pwd)"
-        "-write-php-runtime-config"
+        "-write-runtime-config"
     else
         >&2 echo "error: $1 does not exist"
     fi
@@ -329,6 +314,19 @@ watch-site() {
     pushd "${EMERGENCE_REPO}" > /dev/null
     git holo project "${EMERGENCE_HOLOBRANCH}" --working --watch ${EMERGENCE_FETCH:+--fetch} | xargs -n 1 emergence-php-load
     popd > /dev/null
+}
+
+echo "    * Use 'enable-xdebug <debugger_host>' to switch environment to running a different site repository"
+enable-xdebug() {
+    export XDEBUG_HOST="${1:-127.0.0.1}"
+    init-user-config php5 "
+    [extensions.xdebug]
+    enabled=true
+    [extensions.xdebug.config]
+    remote_connect_back = 0
+    remote_host = '${XDEBUG_HOST}'
+    "
+    echo "enabled Xdebug with remote debugger: ${XDEBUG_HOST}"
 }
 
 

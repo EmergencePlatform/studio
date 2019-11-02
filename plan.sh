@@ -1,11 +1,12 @@
 pkg_name=studio
 pkg_origin=emergence
-pkg_version="0.5.0"
+pkg_version="0.6"
 pkg_maintainer="Chris Alfano <chris@jarv.us>"
 pkg_license=("MIT")
 pkg_deps=(
   core/coreutils
   core/composer
+  core/mysql-client
   jarvus/rs-git-fsmonitor
   jarvus/hologit
   jarvus/watchman
