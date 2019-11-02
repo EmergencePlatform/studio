@@ -11,6 +11,7 @@ pkg_deps=(
   jarvus/hologit
   jarvus/watchman
   emergence/php-runtime
+  emergence/php5
   emergence/nginx
 )
 
