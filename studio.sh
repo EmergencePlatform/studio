@@ -48,7 +48,7 @@ export EMERGENCE_CORE
 # use /src/hologit as hologit client if it exists
 if [ -f /src/hologit/bin/cli.js ]; then
     echo
-    echo "--> Activating /src/hologit to provide git-holo"
+    echo "--> Activating /src/hologit to provide git-holo and git-holo-debug"
 
   cat > "${HAB_BINLINK_DIR:-/bin}/git-holo" <<- END_OF_SCRIPT
 #!/bin/bash
@@ -59,10 +59,11 @@ set -a
 set +a
 PATH="\${ENVPATH}:\${PATH}"
 
-exec $(hab pkg path core/node)/bin/node "--\${NODE_INSPECT:-inspect}=0.0.0.0:9229" /src/hologit/bin/cli.js \$@
-
 END_OF_SCRIPT
-  chmod +x "${HAB_BINLINK_DIR:-/bin}/git-holo"
+  cp "${HAB_BINLINK_DIR:-/bin}/git-holo"{,-debug}
+  echo "exec $(hab pkg path core/node)/bin/node /src/hologit/bin/cli.js \$@" >> "${HAB_BINLINK_DIR:-/bin}/git-holo"
+  echo "exec $(hab pkg path core/node)/bin/node --inspect-brk=0.0.0.0:9229 /src/hologit/bin/cli.js \$@" >> "${HAB_BINLINK_DIR:-/bin}/git-holo-debug"
+  chmod +x "${HAB_BINLINK_DIR:-/bin}/git-holo"{,-debug}
   echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo to /src/hologit/bin/cli.js"
 else
   hab pkg binlink jarvus/hologit
