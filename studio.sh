@@ -65,6 +65,7 @@ END_OF_SCRIPT
   echo "exec $(hab pkg path core/node)/bin/node --inspect-brk=0.0.0.0:9229 /src/hologit/bin/cli.js \$@" >> "${HAB_BINLINK_DIR:-/bin}/git-holo-debug"
   chmod +x "${HAB_BINLINK_DIR:-/bin}/git-holo"{,-debug}
   echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo to /src/hologit/bin/cli.js"
+  echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo-debug to /src/hologit/bin/cli.js --inspect-brk=0.0.0.0:9229"
 else
   hab pkg binlink jarvus/hologit
 fi
