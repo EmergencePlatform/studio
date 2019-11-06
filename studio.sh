@@ -48,7 +48,7 @@ export EMERGENCE_CORE
 # use /src/hologit as hologit client if it exists
 if [ -f /src/hologit/bin/cli.js ]; then
     echo
-    echo "--> Activating /src/hologit to provide git-holo"
+    echo "--> Activating /src/hologit to provide git-holo and git-holo-debug"
 
   cat > "${HAB_BINLINK_DIR:-/bin}/git-holo" <<- END_OF_SCRIPT
 #!/bin/bash
@@ -59,11 +59,13 @@ set -a
 set +a
 PATH="\${ENVPATH}:\${PATH}"
 
-exec $(hab pkg path core/node)/bin/node "--\${NODE_INSPECT:-inspect}=0.0.0.0:9229" /src/hologit/bin/cli.js \$@
-
 END_OF_SCRIPT
-  chmod +x "${HAB_BINLINK_DIR:-/bin}/git-holo"
+  cp "${HAB_BINLINK_DIR:-/bin}/git-holo"{,-debug}
+  echo "exec $(hab pkg path core/node)/bin/node /src/hologit/bin/cli.js \$@" >> "${HAB_BINLINK_DIR:-/bin}/git-holo"
+  echo "exec $(hab pkg path core/node)/bin/node --inspect-brk=0.0.0.0:9229 /src/hologit/bin/cli.js \$@" >> "${HAB_BINLINK_DIR:-/bin}/git-holo-debug"
+  chmod +x "${HAB_BINLINK_DIR:-/bin}/git-holo"{,-debug}
   echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo to /src/hologit/bin/cli.js"
+  echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo-debug to /src/hologit/bin/cli.js --inspect-brk=0.0.0.0:9229"
 else
   hab pkg binlink jarvus/hologit
 fi
@@ -258,7 +260,7 @@ shell-runtime() {
 }
 
 
-echo "    * Use 'load-sql [file...|URL|site]' to load one or more .sql files into the local mysql service"
+echo "    * Use 'load-sql [file...|URL|site] [database]' to load one or more .sql files into the local mysql service"
 load-sql() {
     LOAD_SQL_MYSQL="hab pkg exec ${DB_SERVICE} mysql"
 
@@ -275,6 +277,21 @@ load-sql() {
     elif [ -n "${EMERGENCE_RUNTIME}" ]; then
         cat "${1:-/hab/svc/${EMERGENCE_RUNTIME#*/}/var/site-data/seed.sql}" | $LOAD_SQL_MYSQL
     fi
+}
+
+echo "    * Use 'dump-sql [database] > file.sql' to dump database to SQL"
+dump-sql() {
+    hab pkg exec "${DB_SERVICE}" mysqldump \
+        --force \
+        --skip-opt \
+        --skip-comments \
+        --skip-dump-date \
+        --create-options \
+        --order-by-primary \
+        --single-transaction \
+        --compact \
+        --quick \
+        "${1:-$DB_DATABASE}"
 }
 
 
@@ -316,7 +333,7 @@ watch-site() {
     popd > /dev/null
 }
 
-echo "    * Use 'enable-xdebug <debugger_host>' to switch environment to running a different site repository"
+echo "    * Use 'enable-xdebug <debugger_host>' to configure xdebug via a host"
 enable-xdebug() {
     export XDEBUG_HOST="${1:-127.0.0.1}"
     init-user-config php5 "
