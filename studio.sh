@@ -260,7 +260,7 @@ shell-runtime() {
 }
 
 
-echo "    * Use 'load-sql [file...|URL|site]' to load one or more .sql files into the local mysql service"
+echo "    * Use 'load-sql [file...|URL|site] [database]' to load one or more .sql files into the local mysql service"
 load-sql() {
     LOAD_SQL_MYSQL="hab pkg exec ${DB_SERVICE} mysql"
 
@@ -277,6 +277,21 @@ load-sql() {
     elif [ -n "${EMERGENCE_RUNTIME}" ]; then
         cat "${1:-/hab/svc/${EMERGENCE_RUNTIME#*/}/var/site-data/seed.sql}" | $LOAD_SQL_MYSQL
     fi
+}
+
+echo "    * Use 'dump-sql [database] > file.sql' to dump database to SQL"
+dump-sql() {
+    hab pkg exec "${DB_SERVICE}" mysqldump \
+        --force \
+        --skip-opt \
+        --skip-comments \
+        --skip-dump-date \
+        --create-options \
+        --order-by-primary \
+        --single-transaction \
+        --compact \
+        --quick \
+        "${1:-$DB_DATABASE}"
 }
 
 
@@ -318,7 +333,7 @@ watch-site() {
     popd > /dev/null
 }
 
-echo "    * Use 'enable-xdebug <debugger_host>' to switch environment to running a different site repository"
+echo "    * Use 'enable-xdebug <debugger_host>' to configure xdebug via a host"
 enable-xdebug() {
     export XDEBUG_HOST="${1:-127.0.0.1}"
     init-user-config php5 "
