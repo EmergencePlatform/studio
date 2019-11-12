@@ -256,7 +256,7 @@ shell-mysql() {
 
 echo "    * Use 'shell-runtime' to open a php shell for the studio runtime service"
 shell-runtime() {
-    hab pkg exec emergence/studio psysh
+    hab pkg exec emergence/studio psysh $@
 }
 
 
