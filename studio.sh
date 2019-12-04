@@ -212,7 +212,7 @@ start-http() {
     fi
 
     hab svc load emergence/nginx \
-        --bind="runtime:${1:-${EMERGENCE_RUNTIME#*/}.default}" \
+        --bind="backend:${1:-${EMERGENCE_RUNTIME#*/}.default}" \
         --strategy at-once \
         --force
 }
