@@ -5,7 +5,6 @@ echo
 echo "--> Populating common commands"
 hab pkg binlink core/git
 hab pkg binlink jarvus/watchman
-hab pkg binlink emergence/php-runtime
 hab pkg binlink core/mysql-client mysql
 mkdir -m 777 -p /hab/svc/watchman/var
 
@@ -322,14 +321,14 @@ switch-site() {
 echo "    * Use 'update-site' to update the running site from ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
 update-site() {
     pushd "${EMERGENCE_REPO}" > /dev/null
-    git holo project "${EMERGENCE_HOLOBRANCH}" --working ${EMERGENCE_FETCH:+--fetch} | emergence-php-load --stdin
+    git holo project "${EMERGENCE_HOLOBRANCH}" --working ${EMERGENCE_FETCH:+--fetch} | hab pkg exec "${EMERGENCE_RUNTIME}" emergence-php-load --stdin
     popd > /dev/null
 }
 
 echo "    * Use 'watch-site' to watch the running site in ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
 watch-site() {
     pushd "${EMERGENCE_REPO}" > /dev/null
-    git holo project "${EMERGENCE_HOLOBRANCH}" --working --watch ${EMERGENCE_FETCH:+--fetch} | xargs -n 1 emergence-php-load
+    git holo project "${EMERGENCE_HOLOBRANCH}" --working --watch ${EMERGENCE_FETCH:+--fetch} | xargs -n 1 hab pkg exec "${EMERGENCE_RUNTIME}" emergence-php-load
     popd > /dev/null
 }
 
