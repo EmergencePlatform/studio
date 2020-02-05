@@ -120,7 +120,7 @@ init-user-config mysql-remote '
 
 -write-runtime-config() {
     if [ "${EMERGENCE_RUNTIME}" == "emergence/php-runtime" ]; then
-        init-user-config --force ${EMERGENCE_RUNTIME#*/} "
+        runtime_config="
             [core]
             root = \"${EMERGENCE_CORE}\"
 
@@ -131,7 +131,7 @@ init-user-config mysql-remote '
             gitDir = \"${EMERGENCE_REPO}/.git\"
         "
     else
-        init-user-config --force ${EMERGENCE_RUNTIME#*/} "
+        runtime_config="
             [core]
             root = \"${EMERGENCE_CORE}\"
 
@@ -139,6 +139,19 @@ init-user-config mysql-remote '
             database = \"${DB_DATABASE:-default}\"
         "
     fi
+
+    if [ -n "${XDEBUG_HOST}" ]; then
+        runtime_config="${runtime_config}
+
+            [extensions.xdebug]
+            enabled=true
+            [extensions.xdebug.config]
+            remote_connect_back = 0
+            remote_host = '${XDEBUG_HOST}'
+        "
+    fi
+
+    init-user-config --force ${EMERGENCE_RUNTIME#*/} "${runtime_config}"
 
     mkdir -p /root/.config/psysh
     cat > /root/.config/psysh/config.php <<- END_OF_SCRIPT
@@ -335,13 +348,7 @@ watch-site() {
 echo "    * Use 'enable-xdebug <debugger_host>' to configure xdebug via a host"
 enable-xdebug() {
     export XDEBUG_HOST="${1:-127.0.0.1}"
-    init-user-config php5 "
-    [extensions.xdebug]
-    enabled=true
-    [extensions.xdebug.config]
-    remote_connect_back = 0
-    remote_host = '${XDEBUG_HOST}'
-    "
+    "-write-runtime-config"
     echo "enabled Xdebug with remote debugger: ${XDEBUG_HOST}"
 }
 
