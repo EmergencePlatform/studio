@@ -196,7 +196,7 @@ start-mysql() {
 
 echo "    * Use 'start-mysql-remote [db]' to login to a remote MySQL database"
 start-mysql-remote() {
-    vim "/hab/user/mysql-remote/config/user.toml"
+    "${EDITOR:-vim}" "/hab/user/mysql-remote/config/user.toml"
     start-mysql "jarvus/mysql-remote" "${1}"
 }
 
