@@ -272,7 +272,7 @@ shell-runtime() {
 }
 
 
-echo "    * Use 'load-sql [file...|URL|site] [database]' to load one or more .sql files into the local mysql service"
+echo "    * Use 'load-sql [-|file...|URL|site] [database]' to load one or more .sql files into the local mysql service"
 load-sql() {
     LOAD_SQL_MYSQL="hab pkg exec ${DB_SERVICE} mysql"
 
