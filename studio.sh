@@ -119,24 +119,19 @@ init-user-config mysql-remote '
 '
 
 -write-runtime-config() {
-    if [ "${EMERGENCE_RUNTIME}" == "emergence/php-runtime" ]; then
-        runtime_config="
-            [core]
-            root = \"${EMERGENCE_CORE}\"
+    runtime_config="
+        [core]
+        root = \"${EMERGENCE_CORE}\"
 
-            [sites.default]
-            database = \"${DB_DATABASE:-default}\"
+        [sites.default]
+        database = \"${DB_DATABASE:-default}\"
+    "
+
+    if [ "${EMERGENCE_RUNTIME}" == "emergence/php-runtime" ] || [ -n "${EMERGENCE_SITE_GIT_DIR}" ]; then
+        runtime_config="${runtime_config}
 
             [sites.default.holo]
-            gitDir = \"${EMERGENCE_REPO}/.git\"
-        "
-    else
-        runtime_config="
-            [core]
-            root = \"${EMERGENCE_CORE}\"
-
-            [sites.default]
-            database = \"${DB_DATABASE:-default}\"
+            gitDir = \"${EMERGENCE_SITE_GIT_DIR:-${EMERGENCE_REPO}/.git}\"
         "
     fi
 
@@ -350,6 +345,13 @@ enable-xdebug() {
     export XDEBUG_HOST="${1:-127.0.0.1}"
     "-write-runtime-config"
     echo "enabled Xdebug with remote debugger: ${XDEBUG_HOST}"
+}
+
+echo "    * Use 'enable-runtime-update' to enable updating site-specific runtime builds with new site code via \`update-site\` and \`watch-site\`"
+enable-runtime-update() {
+    export EMERGENCE_SITE_GIT_DIR="${EMERGENCE_REPO}/.git"
+    "-write-runtime-config"
+    echo "enabled updating ${EMERGENCE_RUNTIME} from ${EMERGENCE_SITE_GIT_DIR}"
 }
 
 
