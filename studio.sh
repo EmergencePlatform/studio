@@ -136,6 +136,9 @@ init-user-config mysql-remote '
     fi
 
     if [ -n "${XDEBUG_HOST}" ]; then
+        mkdir "/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles"
+        chown hab:hab "/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles"
+
         runtime_config="${runtime_config}
 
             [extensions.xdebug]
@@ -143,6 +146,8 @@ init-user-config mysql-remote '
             [extensions.xdebug.config]
             remote_connect_back = 0
             remote_host = '${XDEBUG_HOST}'
+            profiler_enable_trigger = 1
+            profiler_output_dir = '/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles'
         "
     fi
 
@@ -258,12 +263,12 @@ echo
 
 echo "    * Use 'shell-mysql' to open a mysql shell for the local mysql service"
 shell-mysql() {
-    hab pkg exec "${DB_SERVICE}" mysql "${1:-$DB_DATABASE}" $@
+    hab pkg exec "${DB_SERVICE}" mysql "${1:-$DB_DATABASE}" "$@"
 }
 
 echo "    * Use 'shell-runtime' to open a php shell for the studio runtime service"
 shell-runtime() {
-    hab pkg exec emergence/studio psysh $@
+    hab pkg exec emergence/studio psysh "$@"
 }
 
 
