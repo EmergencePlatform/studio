@@ -119,28 +119,26 @@ init-user-config mysql-remote '
 '
 
 -write-runtime-config() {
-    if [ "${EMERGENCE_RUNTIME}" == "emergence/php-runtime" ]; then
-        runtime_config="
-            [core]
-            root = \"${EMERGENCE_CORE}\"
+    runtime_config="
+        [core]
+        root = \"${EMERGENCE_CORE}\"
 
-            [sites.default]
-            database = \"${DB_DATABASE:-default}\"
+        [sites.default]
+        database = \"${DB_DATABASE:-default}\"
+    "
+
+    if [ "${EMERGENCE_RUNTIME}" == "emergence/php-runtime" ] || [ -n "${EMERGENCE_SITE_GIT_DIR}" ]; then
+        runtime_config="${runtime_config}
 
             [sites.default.holo]
-            gitDir = \"${EMERGENCE_REPO}/.git\"
-        "
-    else
-        runtime_config="
-            [core]
-            root = \"${EMERGENCE_CORE}\"
-
-            [sites.default]
-            database = \"${DB_DATABASE:-default}\"
+            gitDir = \"${EMERGENCE_SITE_GIT_DIR:-${EMERGENCE_REPO}/.git}\"
         "
     fi
 
     if [ -n "${XDEBUG_HOST}" ]; then
+        mkdir "/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles"
+        chown hab:hab "/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles"
+
         runtime_config="${runtime_config}
 
             [extensions.xdebug]
@@ -148,6 +146,8 @@ init-user-config mysql-remote '
             [extensions.xdebug.config]
             remote_connect_back = 0
             remote_host = '${XDEBUG_HOST}'
+            profiler_enable_trigger = 1
+            profiler_output_dir = '/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles'
         "
     fi
 
@@ -196,7 +196,7 @@ start-mysql() {
 
 echo "    * Use 'start-mysql-remote [db]' to login to a remote MySQL database"
 start-mysql-remote() {
-    vim "/hab/user/mysql-remote/config/user.toml"
+    "${EDITOR:-vim}" "/hab/user/mysql-remote/config/user.toml"
     start-mysql "jarvus/mysql-remote" "${1}"
 }
 
@@ -263,16 +263,16 @@ echo
 
 echo "    * Use 'shell-mysql' to open a mysql shell for the local mysql service"
 shell-mysql() {
-    hab pkg exec "${DB_SERVICE}" mysql "${1:-$DB_DATABASE}" $@
+    hab pkg exec "${DB_SERVICE}" mysql "${1:-$DB_DATABASE}" "$@"
 }
 
 echo "    * Use 'shell-runtime' to open a php shell for the studio runtime service"
 shell-runtime() {
-    hab pkg exec emergence/studio psysh $@
+    hab pkg exec emergence/studio psysh "$@"
 }
 
 
-echo "    * Use 'load-sql [file...|URL|site] [database]' to load one or more .sql files into the local mysql service"
+echo "    * Use 'load-sql [-|file...|URL|site] [database]' to load one or more .sql files into the local mysql service"
 load-sql() {
     LOAD_SQL_MYSQL="hab pkg exec ${DB_SERVICE} mysql"
 
@@ -350,6 +350,22 @@ enable-xdebug() {
     export XDEBUG_HOST="${1:-127.0.0.1}"
     "-write-runtime-config"
     echo "enabled Xdebug with remote debugger: ${XDEBUG_HOST}"
+}
+
+echo "    * Use 'enable-runtime-update' to enable updating site-specific runtime builds with new site code via \`update-site\` and \`watch-site\`"
+enable-runtime-update() {
+    export EMERGENCE_SITE_GIT_DIR="${EMERGENCE_REPO}/.git"
+    "-write-runtime-config"
+    echo "enabled updating ${EMERGENCE_RUNTIME} from ${EMERGENCE_SITE_GIT_DIR}"
+}
+
+echo "    * Use 'console-run [command] <args...>' to execute a console command within the current runtime instance"
+console-run() {
+    console_command="$1"
+    shift
+    [ -z "$console_command" ] && { echo >&2 'Usage: console-run [command] <args...>'; return 1; }
+
+    hab pkg exec "${EMERGENCE_RUNTIME}" emergence-console-run "${console_command}" "$@"
 }
 
 
