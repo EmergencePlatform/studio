@@ -136,7 +136,7 @@ init-user-config mysql-remote '
     fi
 
     if [ -n "${XDEBUG_HOST}" ]; then
-        mkdir "/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles"
+        mkdir -p "/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles"
         chown hab:hab "/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles"
 
         runtime_config="${runtime_config}
