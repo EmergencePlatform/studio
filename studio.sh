@@ -132,6 +132,9 @@ init-user-config mysql-remote '
 
             [sites.default.holo]
             gitDir = \"${EMERGENCE_SITE_GIT_DIR:-${EMERGENCE_REPO}/.git}\"
+
+            [extensions.opcache.config]
+            validate_timestamps = false
         "
     fi
 
