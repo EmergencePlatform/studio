@@ -134,7 +134,7 @@ init-user-config mysql-remote '
             gitDir = \"${EMERGENCE_SITE_GIT_DIR:-${EMERGENCE_REPO}/.git}\"
 
             [extensions.opcache.config]
-            validate_timestamps = false
+            validate_timestamps = true
         "
     fi
 
