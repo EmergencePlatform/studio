@@ -134,7 +134,7 @@ init-user-config mysql-remote '
             gitDir = \"${EMERGENCE_SITE_GIT_DIR:-${EMERGENCE_REPO}/.git}\"
 
             [extensions.opcache.config]
-            validate_timestamps = false
+            validate_timestamps = true
         "
     fi
 
@@ -336,9 +336,17 @@ switch-site() {
 
 echo "    * Use 'update-site' to update the running site from ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
 update-site() {
+    local previous_tree="${EMERGENCE_LOADED_TREE}"
+
     pushd "${EMERGENCE_REPO}" > /dev/null
-    git holo project "${EMERGENCE_HOLOBRANCH}" --working ${EMERGENCE_FETCH:+--fetch} | hab pkg exec "${EMERGENCE_RUNTIME}" emergence-php-load --stdin
+    export EMERGENCE_LOADED_TREE=$(git holo project "${EMERGENCE_HOLOBRANCH}" --working ${EMERGENCE_FETCH:+--fetch})
     popd > /dev/null
+
+    hab pkg exec "${EMERGENCE_RUNTIME}" emergence-php-load "${EMERGENCE_LOADED_TREE}"
+
+    if [ -n "${previous_tree}" ]; then
+        git diff --stat "${previous_tree}" "${EMERGENCE_LOADED_TREE}"
+    fi
 }
 
 echo "    * Use 'watch-site' to watch the running site in ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
