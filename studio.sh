@@ -80,6 +80,7 @@ echo
 echo "--> Configuring services for local development..."
 
 init-user-config() {
+    local config_force
     if [ "$1" == "--force" ]; then
         shift
         config_force=true
@@ -87,11 +88,11 @@ init-user-config() {
         config_force=false
     fi
 
-    config_pkg_name="$1"
-    config_default="$2"
+    local config_pkg_name="$1"
+    local config_default="$2"
     [ -z "$config_pkg_name" -o -z "$config_default" ] && { echo >&2 'Usage: init-user-config pkg_name "[default]\nconfig = value"'; return 1; }
 
-    config_toml_path="/hab/user/${config_pkg_name}/config/user.toml"
+    local config_toml_path="/hab/user/${config_pkg_name}/config/user.toml"
 
     if $config_force || [ ! -f "$config_toml_path" ]; then
         echo "    Initializing: $config_toml_path"
@@ -119,7 +120,7 @@ init-user-config mysql-remote '
 '
 
 -write-runtime-config() {
-    runtime_config="
+    local runtime_config="
         [core]
         root = \"${EMERGENCE_CORE}\"
 
@@ -277,20 +278,20 @@ shell-runtime() {
 
 echo "    * Use 'load-sql [-|file...|URL|site] [database]' to load one or more .sql files into the local mysql service"
 load-sql() {
-    LOAD_SQL_MYSQL="hab pkg exec ${DB_SERVICE} mysql"
+    local load_sql_mysql="hab pkg exec ${DB_SERVICE} mysql"
 
     DATABASE_NAME="${2:-$DB_DATABASE}"
-    echo "CREATE DATABASE IF NOT EXISTS \`${DATABASE_NAME}\`;" | $LOAD_SQL_MYSQL;
-    LOAD_SQL_MYSQL="${LOAD_SQL_MYSQL} ${DATABASE_NAME}"
+    echo "CREATE DATABASE IF NOT EXISTS \`${DATABASE_NAME}\`;" | $load_sql_mysql;
+    load_sql_mysql="${load_sql_mysql} ${DATABASE_NAME}"
 
     if [[ "${1}" =~ ^https?://[^/]+/?$ ]]; then
         printf "Developer username: "
         read LOAD_SQL_USER
-        wget --user="${LOAD_SQL_USER}" --ask-password "${1%/}/site-admin/database/dump.sql" -O - | $LOAD_SQL_MYSQL
+        wget --user="${LOAD_SQL_USER}" --ask-password "${1%/}/site-admin/database/dump.sql" -O - | $load_sql_mysql
     elif [[ "${1}" =~ ^https?://[^/]+/.+ ]]; then
-        wget "${1}" -O - | $LOAD_SQL_MYSQL
+        wget "${1}" -O - | $load_sql_mysql
     elif [ -n "${EMERGENCE_RUNTIME}" ]; then
-        cat "${1:-/hab/svc/${EMERGENCE_RUNTIME#*/}/var/site-data/seed.sql}" | $LOAD_SQL_MYSQL
+        cat "${1:-/hab/svc/${EMERGENCE_RUNTIME#*/}/var/site-data/seed.sql}" | $load_sql_mysql
     fi
 }
 
@@ -373,7 +374,7 @@ enable-runtime-update() {
 
 echo "    * Use 'console-run <command> [args...]' to execute a console command within the current runtime instance"
 console-run() {
-    console_command="$1"
+    local console_command="${1}"
     shift
     [ -z "$console_command" ] && { echo >&2 'Usage: console-run <command> [args...]'; return 1; }
 
