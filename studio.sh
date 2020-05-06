@@ -371,11 +371,11 @@ enable-runtime-update() {
     echo "enabled updating ${EMERGENCE_RUNTIME} from ${EMERGENCE_SITE_GIT_DIR}"
 }
 
-echo "    * Use 'console-run [command] <args...>' to execute a console command within the current runtime instance"
+echo "    * Use 'console-run <command> [args...]' to execute a console command within the current runtime instance"
 console-run() {
     console_command="$1"
     shift
-    [ -z "$console_command" ] && { echo >&2 'Usage: console-run [command] <args...>'; return 1; }
+    [ -z "$console_command" ] && { echo >&2 'Usage: console-run <command> [args...]'; return 1; }
 
     hab pkg exec "${EMERGENCE_RUNTIME}" emergence-console-run "${console_command}" "$@"
 }
