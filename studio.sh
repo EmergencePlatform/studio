@@ -155,6 +155,14 @@ init-user-config mysql-remote '
         "
     fi
 
+    if [ -n "${MAIL_SERVICE}" ] && hab svc status "${MAIL_SERVICE}" > /dev/null 2>&1; then
+        runtime_config="${runtime_config}
+
+            [sendmail]
+            path = 'hab pkg exec ${MAIL_SERVICE} sendmail -t -i'
+        "
+    fi
+
     init-user-config --force ${EMERGENCE_RUNTIME#*/} "${runtime_config}"
 
     mkdir -p /root/.config/psysh
@@ -370,6 +378,35 @@ enable-runtime-update() {
     export EMERGENCE_SITE_GIT_DIR="${EMERGENCE_REPO}/.git"
     "-write-runtime-config"
     echo "enabled updating ${EMERGENCE_RUNTIME} from ${EMERGENCE_SITE_GIT_DIR}"
+}
+
+echo "    * Use 'enable-email [pkg=jarvus/postfix]' to install a local MTA for queuing/relaying/delivering email and configure the current runtime to use it"
+enable-email() {
+    if [ -z "${SYSLOG_PID}" ]; then
+        hab pkg exec core/busybox-static syslogd -n -O /hab/cache/sys.log &
+        SYSLOG_PID=$!
+        echo "syslog started, to follow use: tail -f /hab/cache/sys.log"
+    fi
+
+    export MAIL_SERVICE="${1:-${MAIL_SERVICE:-jarvus/postfix}}"
+    hab svc load --force "${MAIL_SERVICE}"
+    "-write-runtime-config"
+    echo "${MAIL_SERVICE} loaded and runtime configured to use it"
+}
+
+echo "    * Use 'enable-email-relay <host> <port> <username> [password]' to configure MTA to relay"
+enable-email-relay() {
+    if [ -z "${1}" ] || [ -z "${2}" ] || [ -z "${3}" ]; then
+        echo >&2 'Usage: enable-email-relay <host> <port> <username> [password]'
+        return 1
+    fi
+
+    init-user-config --force postfix "
+        relayhost = '[${1}]:${2}'
+
+        [smtp.sasl]
+        password_maps = 'static:${3}:${4}'
+    "
 }
 
 echo "    * Use 'console-run <command> [args...]' to execute a console command within the current runtime instance"
