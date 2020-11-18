@@ -286,7 +286,7 @@ shell-runtime() {
 
 echo "    * Use 'load-sql [-|file...|URL|site] [database]' to load one or more .sql files into the local mysql service"
 load-sql() {
-    local load_sql_mysql="hab pkg exec ${DB_SERVICE} mysql"
+    local load_sql_mysql="hab pkg exec ${DB_SERVICE} mysql --default-character-set=utf8"
 
     DATABASE_NAME="${2:-$DB_DATABASE}"
     echo "CREATE DATABASE IF NOT EXISTS \`${DATABASE_NAME}\`;" | $load_sql_mysql;
