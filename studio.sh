@@ -71,7 +71,8 @@ fi
 
 
 echo
-echo "--> Optimizing git performance"
+echo "--> Configuring git..."
+export GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 git config --global core.untrackedCache true
 git config --global core.fsmonitor "$(hab pkg path jarvus/rs-git-fsmonitor)/bin/rs-git-fsmonitor"
 
