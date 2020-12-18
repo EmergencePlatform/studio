@@ -16,6 +16,10 @@ hab pkg binlink core/coreutils -d /bin chmod
 hab pkg binlink core/coreutils -d /bin stat
 
 
+# load studio toolkit
+source "$(hab pkg path jarvus/studio-toolkit)/studio.sh"
+
+
 echo
 echo "--> Welcome to Emergence Studio! Detecting environment..."
 
@@ -187,9 +191,11 @@ END_OF_SCRIPT
 "-write-runtime-config"
 
 
-echo
+##
+## SERVICE TOOLS
+##
 
-echo "    * Use 'start-mysql [pkg] [db]' to load a MySQL database service"
+STUDIO_HELP['start-mysql [pkg] [db]']="Load MySQL database service"
 start-mysql() {
     if [ -n "${DB_SERVICE}" ] && hab svc status "${DB_SERVICE}" > /dev/null 2>&1; then
         hab svc unload "${DB_SERVICE}"
@@ -208,13 +214,14 @@ start-mysql() {
         --force
 }
 
-echo "    * Use 'start-mysql-remote [db]' to login to a remote MySQL database"
+STUDIO_HELP['start-mysql-remote [db]']="Load connection to remote MySQL database service"
 start-mysql-remote() {
     "${EDITOR:-vim}" "/hab/user/mysql-remote/config/user.toml"
     start-mysql "jarvus/mysql-remote" "${1}"
 }
 
-echo "    * Use 'start-runtime [pkg]' to start runtime"
+STUDIO_HELP['start-runtime [pkg]']="Load runtime service"
+# shellcheck disable=SC2120
 start-runtime() {
     if [ -n "${EMERGENCE_RUNTIME}" ] && hab svc status "${EMERGENCE_RUNTIME}" > /dev/null 2>&1; then
         hab svc unload "${EMERGENCE_RUNTIME}"
@@ -230,7 +237,8 @@ start-runtime() {
     "-write-runtime-config"
 }
 
-echo "    * Use 'start-http' to start http service"
+STUDIO_HELP['start-http']="Load HTTP service"
+# shellcheck disable=SC2120
 start-http() {
     if [ -z "${EMERGENCE_RUNTIME}" ]; then
         echo "Cannot start-http, EMERGENCE_RUNTIME is not initialized, start-runtime first"
@@ -243,29 +251,28 @@ start-http() {
         --force
 }
 
-echo "    * Use 'start-all' to start all services"
+STUDIO_HELP['start-all']="Load all services"
 start-all() {
     start-mysql && start-runtime && start-http
 }
 
 
-echo
-echo "    * Use 'stop-mysql' to stop just mysql service"
+STUDIO_HELP['stop-mysql']="Unload MySQL services"
 stop-mysql() {
     hab svc unload "${DB_SERVICE}"
 }
 
-echo "    * Use 'stop-runtime' to stop just runtime service"
+STUDIO_HELP['stop-runtime']="Unload runtime services"
 stop-runtime() {
     hab svc unload "${EMERGENCE_RUNTIME}"
 }
 
-echo "    * Use 'stop-http' to stop just http service"
+STUDIO_HELP['stop-http']="Unload HTTP services"
 stop-http() {
     hab svc unload emergence/nginx
 }
 
-echo "    * Use 'stop-all' to stop everything"
+STUDIO_HELP['stop-all']="Unload all services"
 stop-all() {
     stop-http
     stop-runtime
@@ -273,20 +280,69 @@ stop-all() {
 }
 
 
-echo
+##
+## STUDIO CONFIGURATION
+##
 
-echo "    * Use 'shell-mysql' to open a mysql shell for the local mysql service"
+STUDIO_HELP['enable-xdebug <debugger_host>']="Enable PHP Xdebug and configure to connect to given host"
+enable-xdebug() {
+    export XDEBUG_HOST="${1:-127.0.0.1}"
+    "-write-runtime-config"
+    echo "enabled Xdebug with remote debugger: ${XDEBUG_HOST}"
+}
+
+STUDIO_HELP['enable-runtime-update']="Enable updating site-specific runtime builds with new site code via \`update-site\` and \`watch-site\`"
+enable-runtime-update() {
+    export EMERGENCE_SITE_GIT_DIR="${EMERGENCE_REPO}/.git"
+    "-write-runtime-config"
+    echo "enabled updating ${EMERGENCE_RUNTIME} from ${EMERGENCE_SITE_GIT_DIR}"
+}
+
+STUDIO_HELP['enable-email [pkg=jarvus/postfix]']="Install a local MTA for queuing/relaying/delivering email and configure the current runtime to use it"
+enable-email() {
+    if [ -z "${SYSLOG_PID}" ]; then
+        hab pkg exec core/busybox-static syslogd -n -O /hab/cache/sys.log &
+        SYSLOG_PID=$!
+        echo "syslog started, to follow use: tail -f /hab/cache/sys.log"
+    fi
+
+    export MAIL_SERVICE="${1:-${MAIL_SERVICE:-jarvus/postfix}}"
+    hab svc load --force "${MAIL_SERVICE}"
+    "-write-runtime-config"
+    echo "${MAIL_SERVICE} loaded and runtime configured to use it"
+}
+
+STUDIO_HELP['enable-email-relay <host> <port> <username> [password]']="Configure MTA to relay"
+enable-email-relay() {
+    if [ -z "${1}" ] || [ -z "${2}" ] || [ -z "${3}" ]; then
+        echo >&2 'Usage: enable-email-relay <host> <port> <username> [password]'
+        return 1
+    fi
+
+    -init-user-config --force postfix "
+        relayhost = '[${1}]:${2}'
+
+        [smtp.sasl]
+        password_maps = 'static:${3}:${4}'
+    "
+}
+
+
+##
+## SHELL TOOLS
+##
+
+STUDIO_HELP['shell-mysql']="Open a MySQL shell for the active MySQL service"
 shell-mysql() {
     hab pkg exec "${DB_SERVICE}" mysql "${1:-$DB_DATABASE}" "$@"
 }
 
-echo "    * Use 'shell-runtime' to open a php shell for the studio runtime service"
+STUDIO_HELP['shell-runtime']="Open a PHP shell for the active runtime service"
 shell-runtime() {
     hab pkg exec emergence/studio psysh "$@"
 }
 
-
-echo "    * Use 'load-sql [-|file...|URL|site] [database]' to load one or more .sql files into the local mysql service"
+STUDIO_HELP['load-sql [-|file...|URL|site] [database]']="Load one or more .sql files into the active MySQL service"
 load-sql() {
     local load_sql_mysql="hab pkg exec ${DB_SERVICE} mysql --default-character-set=utf8"
 
@@ -305,7 +361,7 @@ load-sql() {
     fi
 }
 
-echo "    * Use 'dump-sql [database] > file.sql' to dump database to SQL"
+STUDIO_HELP['dump-sql [database] > file.sql']="Dump active MySQL database to SQL"
 dump-sql() {
     hab pkg exec "${DB_SERVICE}" mysqldump \
         --force \
@@ -320,22 +376,31 @@ dump-sql() {
         "${1:-$DB_DATABASE}"
 }
 
-
-echo "    * Use 'promote-user <username> [account_level]' to promote a user in the database"
+STUDIO_HELP['promote-user <username> [account_level]']="Promote a user in the database"
 promote-user() {
     echo "UPDATE people SET AccountLevel = '${2:-Developer}' WHERE Username = '${1}'" | hab pkg exec "${DB_SERVICE}" mysql "${3:-$DB_DATABASE}"
 }
 
-echo "    * Use 'reset-database [database_name]' to drop and recreate the MySQL database"
+STUDIO_HELP['reset-database [database_name]']="Drop and recreate the active MySQL database"
 reset-mysql() {
     echo "DROP DATABASE IF EXISTS \`"${1:-$DB_DATABASE}"\`; CREATE DATABASE \`"${1:-$DB_DATABASE}"\`;" | hab pkg exec "${DB_SERVICE}" mysql
 }
 
+STUDIO_HELP['console-run <command> [args...]']="Execute a console command within the current runtime instance"
+console-run() {
+    local console_command="${1}"
+    shift
+    [ -z "$console_command" ] && { echo >&2 'Usage: console-run <command> [args...]'; return 1; }
 
-echo
-echo "--> Setting up development commands..."
+    hab pkg exec "${EMERGENCE_RUNTIME}" emergence-console-run "${console_command}" "$@"
+}
 
-echo "    * Use 'switch-site <repo_path>' to switch environment to running a different site repository"
+
+##
+## SITE TOOLS
+##
+
+STUDIO_HELP['switch-site <repo_path>']="Switch environment to running a different site repository"
 switch-site() {
     if [ -d "$1" ]; then
         export EMERGENCE_REPO="$( cd "$1" && pwd)"
@@ -345,8 +410,10 @@ switch-site() {
     fi
 }
 
-echo "    * Use 'update-site' to update the running site from ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
+STUDIO_HELP['update-site']="Update the running site from configured repo+holobranch"
 update-site() {
+    >&2 echo "Projecting ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
+
     pushd "${EMERGENCE_REPO}" > /dev/null
 
     local previous_tree="${EMERGENCE_LOADED_TREE}"
@@ -361,64 +428,18 @@ update-site() {
     popd > /dev/null
 }
 
-echo "    * Use 'watch-site' to watch the running site in ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
+STUDIO_HELP['watch-site']="Wath for file changes and automatically update the running site from configured repo+holobranch"
 watch-site() {
+    >&2 echo "Watching ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
+
     pushd "${EMERGENCE_REPO}" > /dev/null
     git holo project "${EMERGENCE_HOLOBRANCH}" --working --watch ${EMERGENCE_FETCH:+--fetch} | xargs -n 1 hab pkg exec "${EMERGENCE_RUNTIME}" emergence-php-load
     popd > /dev/null
 }
 
-echo "    * Use 'enable-xdebug <debugger_host>' to configure xdebug via a host"
-enable-xdebug() {
-    export XDEBUG_HOST="${1:-127.0.0.1}"
-    "-write-runtime-config"
-    echo "enabled Xdebug with remote debugger: ${XDEBUG_HOST}"
-}
 
-echo "    * Use 'enable-runtime-update' to enable updating site-specific runtime builds with new site code via \`update-site\` and \`watch-site\`"
-enable-runtime-update() {
-    export EMERGENCE_SITE_GIT_DIR="${EMERGENCE_REPO}/.git"
-    "-write-runtime-config"
-    echo "enabled updating ${EMERGENCE_RUNTIME} from ${EMERGENCE_SITE_GIT_DIR}"
-}
-
-echo "    * Use 'enable-email [pkg=jarvus/postfix]' to install a local MTA for queuing/relaying/delivering email and configure the current runtime to use it"
-enable-email() {
-    if [ -z "${SYSLOG_PID}" ]; then
-        hab pkg exec core/busybox-static syslogd -n -O /hab/cache/sys.log &
-        SYSLOG_PID=$!
-        echo "syslog started, to follow use: tail -f /hab/cache/sys.log"
-    fi
-
-    export MAIL_SERVICE="${1:-${MAIL_SERVICE:-jarvus/postfix}}"
-    hab svc load --force "${MAIL_SERVICE}"
-    "-write-runtime-config"
-    echo "${MAIL_SERVICE} loaded and runtime configured to use it"
-}
-
-echo "    * Use 'enable-email-relay <host> <port> <username> [password]' to configure MTA to relay"
-enable-email-relay() {
-    if [ -z "${1}" ] || [ -z "${2}" ] || [ -z "${3}" ]; then
-        echo >&2 'Usage: enable-email-relay <host> <port> <username> [password]'
-        return 1
-    fi
-
-    -init-user-config --force postfix "
-        relayhost = '[${1}]:${2}'
-
-        [smtp.sasl]
-        password_maps = 'static:${3}:${4}'
-    "
-}
-
-echo "    * Use 'console-run <command> [args...]' to execute a console command within the current runtime instance"
-console-run() {
-    local console_command="${1}"
-    shift
-    [ -z "$console_command" ] && { echo >&2 'Usage: console-run <command> [args...]'; return 1; }
-
-    hab pkg exec "${EMERGENCE_RUNTIME}" emergence-console-run "${console_command}" "$@"
-}
+## final init and output
+studio-help
 
 
 # overall instructions

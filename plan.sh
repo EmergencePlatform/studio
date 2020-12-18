@@ -9,6 +9,7 @@ pkg_deps=(
   core/mysql-client
   jarvus/rs-git-fsmonitor
   jarvus/hologit
+  jarvus/studio-toolkit
   jarvus/watchman
   emergence/php-runtime
   emergence/php5
