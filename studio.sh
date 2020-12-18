@@ -81,7 +81,7 @@ git config --global user.email "chef-habitat@studio"
 echo
 echo "--> Configuring services for local development..."
 
-init-user-config() {
+-init-user-config() {
     local config_force
     if [ "$1" == "--force" ]; then
         shift
@@ -92,7 +92,7 @@ init-user-config() {
 
     local config_pkg_name="$1"
     local config_default="$2"
-    [ -z "$config_pkg_name" -o -z "$config_default" ] && { echo >&2 'Usage: init-user-config pkg_name "[default]\nconfig = value"'; return 1; }
+    [ -z "$config_pkg_name" -o -z "$config_default" ] && { echo >&2 'Usage: -init-user-config pkg_name "[default]\nconfig = value"'; return 1; }
 
     local config_toml_path="/hab/user/${config_pkg_name}/config/user.toml"
 
@@ -103,18 +103,18 @@ init-user-config() {
     fi
 }
 
-init-user-config nginx '
+-init-user-config nginx '
     [http.listen]
     port = 80
 '
 
-init-user-config mysql '
+-init-user-config mysql '
     app_username = "admin"
     app_password = "admin"
     bind = "0.0.0.0"
 '
 
-init-user-config mysql-remote '
+-init-user-config mysql-remote '
     username = "admin"
     password = "admin"
     host = "127.0.0.1"
@@ -165,7 +165,7 @@ init-user-config mysql-remote '
         "
     fi
 
-    init-user-config --force ${EMERGENCE_RUNTIME#*/} "${runtime_config}"
+    -init-user-config --force ${EMERGENCE_RUNTIME#*/} "${runtime_config}"
 
     mkdir -p /root/.config/psysh
     cat > /root/.config/psysh/config.php <<- END_OF_SCRIPT
@@ -403,7 +403,7 @@ enable-email-relay() {
         return 1
     fi
 
-    init-user-config --force postfix "
+    -init-user-config --force postfix "
         relayhost = '[${1}]:${2}'
 
         [smtp.sasl]
