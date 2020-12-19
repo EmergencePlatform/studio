@@ -417,7 +417,9 @@ watch-site() {
 
 
 ## final init and output
-studio-help
+if [ -z "${STUDIO_NOHELP}" ]; then
+    studio-help
+fi
 
 
 # overall instructions
