@@ -166,7 +166,6 @@ studio-svc-config mysql-remote '
     ];
 END_OF_SCRIPT
 }
-"-write-runtime-config"
 
 
 ##
@@ -265,7 +264,9 @@ stop-all() {
 STUDIO_HELP['enable-xdebug <debugger_host>']="Enable PHP Xdebug and configure to connect to given host"
 enable-xdebug() {
     export XDEBUG_HOST="${1:-127.0.0.1}"
-    "-write-runtime-config"
+    if [ -n "${EMERGENCE_RUNTIME}" ]; then
+        "-write-runtime-config"
+    fi
     echo "enabled Xdebug with remote debugger: ${XDEBUG_HOST}"
 }
 
