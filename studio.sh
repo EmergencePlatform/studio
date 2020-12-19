@@ -406,7 +406,7 @@ update-site() {
     popd > /dev/null
 }
 
-STUDIO_HELP['watch-site']="Wath for file changes and automatically update the running site from configured repo+holobranch"
+STUDIO_HELP['watch-site']="Watch for file changes and automatically update the running site from configured repo+holobranch"
 watch-site() {
     >&2 echo "Watching ${EMERGENCE_REPO}#${EMERGENCE_HOLOBRANCH}"
 
