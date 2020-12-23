@@ -326,17 +326,17 @@ load-sql() {
     local load_sql_mysql="hab pkg exec ${DB_SERVICE} mysql --default-character-set=utf8"
 
     DATABASE_NAME="${2:-$DB_DATABASE}"
-    echo "CREATE DATABASE IF NOT EXISTS \`${DATABASE_NAME}\`;" | $load_sql_mysql;
+    echo "CREATE DATABASE IF NOT EXISTS \`${DATABASE_NAME}\`;" | eval "${load_sql_mysql}"
     load_sql_mysql="${load_sql_mysql} ${DATABASE_NAME}"
 
     if [[ "${1}" =~ ^https?://[^/]+/?$ ]]; then
         printf "Developer username: "
         read LOAD_SQL_USER
-        wget --user="${LOAD_SQL_USER}" --ask-password "${1%/}/site-admin/database/dump.sql" -O - | $load_sql_mysql
+        wget --user="${LOAD_SQL_USER}" --ask-password "${1%/}/site-admin/database/dump.sql" -O - | eval "${load_sql_mysql}"
     elif [[ "${1}" =~ ^https?://[^/]+/.+ ]]; then
-        wget "${1}" -O - | $load_sql_mysql
+        wget "${1}" -O - | eval "${load_sql_mysql}"
     elif [ -n "${EMERGENCE_RUNTIME}" ]; then
-        cat "${1:-/hab/svc/${EMERGENCE_RUNTIME#*/}/var/site-data/seed.sql}" | $load_sql_mysql
+        eval "${load_sql_mysql}" < "${1:-/hab/svc/${EMERGENCE_RUNTIME#*/}/var/site-data/seed.sql}"
     fi
 }
 
