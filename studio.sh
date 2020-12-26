@@ -336,7 +336,9 @@ load-sql() {
     elif [[ "${1}" =~ ^https?://[^/]+/.+ ]]; then
         wget "${1}" -O - | eval "${load_sql_mysql}"
     elif [ -n "${EMERGENCE_RUNTIME}" ]; then
-        eval "${load_sql_mysql}" < "${1:-/hab/svc/${EMERGENCE_RUNTIME#*/}/var/site-data/seed.sql}"
+        # use cat to support - as value
+        # shellcheck disable=SC2002
+        cat "${1:-/hab/svc/${EMERGENCE_RUNTIME#*/}/var/site-data/seed.sql}" | eval "${load_sql_mysql}"
     fi
 }
 
