@@ -104,6 +104,11 @@ studio-svc-config mysql-remote '
 '
 
 -write-runtime-config() {
+    if [ -z "${EMERGENCE_RUNTIME}" ]; then
+        echo >&2 'No runtime is configured/loaded yet, try running: start-all'
+        return 1
+    fi
+
     local runtime_config="
         [core]
         root = \"${EMERGENCE_CORE}\"
