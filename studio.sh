@@ -104,6 +104,11 @@ studio-svc-config mysql-remote '
 '
 
 -write-runtime-config() {
+    if [ -z "${EMERGENCE_RUNTIME}" ]; then
+        echo >&2 'No runtime is configured/loaded yet, try running: start-all'
+        return 1
+    fi
+
     local runtime_config="
         [core]
         root = \"${EMERGENCE_CORE}\"
@@ -287,6 +292,10 @@ enable-email() {
 
     export MAIL_SERVICE="${1:-${MAIL_SERVICE:-jarvus/postfix}}"
     hab svc load --force "${MAIL_SERVICE}"
+    echo -n "Waiting for mail service"
+    until hab svc status "${MAIL_SERVICE}" > /dev/null 2>&1; do echo -n "."; sleep 0.5; done
+    echo
+
     "-write-runtime-config"
     echo "${MAIL_SERVICE} loaded and runtime configured to use it"
 }
@@ -298,8 +307,16 @@ enable-email-relay() {
         return 1
     fi
 
+    local email_relay_host="${1}"
+
+    if [ "${email_relay_host}" == "host.docker.internal" ] && ! hab pkg exec core/busybox-static nslookup "${email_relay_host}" > /dev/null 2>&1; then
+        echo "Guessing host.docker.internal in non-Mac environment..."
+        email_relay_host="$(hab pkg exec core/busybox-static ip route|awk '/default/ { print $3 }')"
+        echo "Using: ${email_relay_host}"
+    fi
+
     studio-svc-config --force postfix "
-        relayhost = '[${1}]:${2}'
+        relayhost = '[${email_relay_host}]:${2}'
 
         [smtp.sasl]
         password_maps = 'static:${3}:${4}'
