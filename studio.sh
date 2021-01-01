@@ -307,8 +307,16 @@ enable-email-relay() {
         return 1
     fi
 
+    local email_relay_host="${1}"
+
+    if [ "${email_relay_host}" == "host.docker.internal" ] && ! hab pkg exec core/busybox-static nslookup "${email_relay_host}" > /dev/null 2>&1; then
+        echo "Guessing host.docker.internal in non-Mac environment..."
+        email_relay_host="$(hab pkg exec core/busybox-static ip route|awk '/default/ { print $3 }')"
+        echo "Using: ${email_relay_host}"
+    fi
+
     studio-svc-config --force postfix "
-        relayhost = '[${1}]:${2}'
+        relayhost = '[${email_relay_host}]:${2}'
 
         [smtp.sasl]
         password_maps = 'static:${3}:${4}'
