@@ -292,6 +292,10 @@ enable-email() {
 
     export MAIL_SERVICE="${1:-${MAIL_SERVICE:-jarvus/postfix}}"
     hab svc load --force "${MAIL_SERVICE}"
+    echo -n "Waiting for mail service"
+    until hab svc status "${MAIL_SERVICE}" > /dev/null 2>&1; do echo -n "."; sleep 0.5; done
+    echo
+
     "-write-runtime-config"
     echo "${MAIL_SERVICE} loaded and runtime configured to use it"
 }
