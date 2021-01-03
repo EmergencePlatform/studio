@@ -110,6 +110,9 @@ studio-svc-config mysql-remote '
     fi
 
     local runtime_config="
+        [error]
+        display = true
+
         [core]
         root = \"${EMERGENCE_CORE}\"
 
