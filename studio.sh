@@ -343,10 +343,10 @@ shell-runtime() {
 
 STUDIO_HELP['load-fixtures']="Reset database and load fixture data"
 load-fixtures() {
-    echo "Building fixtures from working tree..."
     pushd "${EMERGENCE_REPO}" > /dev/null
+
+    echo "Building fixtures from working tree..."
     fixtures_tree=$(git holo project --working ${FIXTURES_HOLOBRANCH:-fixtures})
-    popd > /dev/null
 
     : "${fixtures_tree:?Failed to build fixtures tree}"
 
@@ -362,6 +362,8 @@ load-fixtures() {
 
     echo "Running migrations..."
     console-run migrations:execute --all
+
+    popd > /dev/null
 }
 
 STUDIO_HELP['load-sql [-|file...|URL|site] [database]']="Load one or more .sql files into the active MySQL service"
