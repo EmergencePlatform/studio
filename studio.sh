@@ -341,6 +341,29 @@ shell-runtime() {
     hab pkg exec emergence/studio psysh "$@"
 }
 
+STUDIO_HELP['load-fixtures']="Reset database and load fixture data"
+load-fixtures() {
+    echo "Building fixtures from working tree..."
+    pushd "${EMERGENCE_REPO}" > /dev/null
+    fixtures_tree=$(git holo project --working ${FIXTURES_HOLOBRANCH:-fixtures})
+    popd > /dev/null
+
+    : "${fixtures_tree:?Failed to build fixtures tree}"
+
+    echo "Resetting database"
+    reset-mysql
+
+    echo "Loading fixtures..."
+    (
+        for fixture_file in $(git ls-tree -r --name-only ${fixtures_tree}); do
+            git cat-file -p "${fixtures_tree}:${fixture_file}"
+        done
+    ) | mysql "${DB_DATABASE}"
+
+    echo "Running migrations..."
+    console-run migrations:execute --all
+}
+
 STUDIO_HELP['load-sql [-|file...|URL|site] [database]']="Load one or more .sql files into the active MySQL service"
 load-sql() {
     local load_sql_mysql="hab pkg exec ${DB_SERVICE} mysql --default-character-set=utf8"
