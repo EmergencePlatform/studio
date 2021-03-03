@@ -53,7 +53,12 @@ if [ -f /src/hologit/bin/cli.js ]; then
     echo
     echo "--> Activating /src/hologit to provide git-holo and git-holo-debug"
 
-  cat > "${HAB_BINLINK_DIR:-/bin}/git-holo" <<- END_OF_SCRIPT
+    _node_path="$(hab pkg path jarvus/node14)"
+    if [ -z "${_node_path}" ]; then _node_path="$(hab pkg path jarvus/node12)"; fi
+    if [ -z "${_node_path}" ]; then _node_path="$(hab pkg path core/node)"; fi
+    echo "    Using node path: ${_node_path}"
+
+    cat > "${HAB_BINLINK_DIR:-/bin}/git-holo" <<- END_OF_SCRIPT
 #!/bin/bash
 
 ENVPATH="\${PATH}"
@@ -63,14 +68,14 @@ set +a
 PATH="\${ENVPATH}:\${PATH}"
 
 END_OF_SCRIPT
-  cp "${HAB_BINLINK_DIR:-/bin}/git-holo"{,-debug}
-  echo "exec $(hab pkg path core/node)/bin/node /src/hologit/bin/cli.js \$@" >> "${HAB_BINLINK_DIR:-/bin}/git-holo"
-  echo "exec $(hab pkg path core/node)/bin/node --inspect-brk=0.0.0.0:9229 /src/hologit/bin/cli.js \$@" >> "${HAB_BINLINK_DIR:-/bin}/git-holo-debug"
-  chmod +x "${HAB_BINLINK_DIR:-/bin}/git-holo"{,-debug}
-  echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo to /src/hologit/bin/cli.js"
-  echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo-debug to /src/hologit/bin/cli.js --inspect-brk=0.0.0.0:9229"
+    cp "${HAB_BINLINK_DIR:-/bin}/git-holo"{,-debug}
+    echo "exec ${_node_path}/bin/node /src/hologit/bin/cli.js \$@" >> "${HAB_BINLINK_DIR:-/bin}/git-holo"
+    echo "exec ${_node_path}/bin/node --inspect-brk=0.0.0.0:9229 /src/hologit/bin/cli.js \$@" >> "${HAB_BINLINK_DIR:-/bin}/git-holo-debug"
+    chmod +x "${HAB_BINLINK_DIR:-/bin}/git-holo"{,-debug}
+    echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo to /src/hologit/bin/cli.js"
+    echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo-debug to /src/hologit/bin/cli.js --inspect-brk=0.0.0.0:9229"
 else
-  hab pkg binlink jarvus/hologit
+    hab pkg binlink jarvus/hologit
 fi
 
 
