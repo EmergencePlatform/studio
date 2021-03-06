@@ -53,7 +53,12 @@ if [ -f /src/hologit/bin/cli.js ]; then
     echo
     echo "--> Activating /src/hologit to provide git-holo and git-holo-debug"
 
-  cat > "${HAB_BINLINK_DIR:-/bin}/git-holo" <<- END_OF_SCRIPT
+    _node_path="$(hab pkg path jarvus/node14)"
+    if [ -z "${_node_path}" ]; then _node_path="$(hab pkg path jarvus/node12)"; fi
+    if [ -z "${_node_path}" ]; then _node_path="$(hab pkg path core/node)"; fi
+    echo "    Using node path: ${_node_path}"
+
+    cat > "${HAB_BINLINK_DIR:-/bin}/git-holo" <<- END_OF_SCRIPT
 #!/bin/bash
 
 ENVPATH="\${PATH}"
@@ -63,14 +68,14 @@ set +a
 PATH="\${ENVPATH}:\${PATH}"
 
 END_OF_SCRIPT
-  cp "${HAB_BINLINK_DIR:-/bin}/git-holo"{,-debug}
-  echo "exec $(hab pkg path core/node)/bin/node /src/hologit/bin/cli.js \$@" >> "${HAB_BINLINK_DIR:-/bin}/git-holo"
-  echo "exec $(hab pkg path core/node)/bin/node --inspect-brk=0.0.0.0:9229 /src/hologit/bin/cli.js \$@" >> "${HAB_BINLINK_DIR:-/bin}/git-holo-debug"
-  chmod +x "${HAB_BINLINK_DIR:-/bin}/git-holo"{,-debug}
-  echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo to /src/hologit/bin/cli.js"
-  echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo-debug to /src/hologit/bin/cli.js --inspect-brk=0.0.0.0:9229"
+    cp "${HAB_BINLINK_DIR:-/bin}/git-holo"{,-debug}
+    echo "exec ${_node_path}/bin/node /src/hologit/bin/cli.js \$@" >> "${HAB_BINLINK_DIR:-/bin}/git-holo"
+    echo "exec ${_node_path}/bin/node --inspect-brk=0.0.0.0:9229 /src/hologit/bin/cli.js \$@" >> "${HAB_BINLINK_DIR:-/bin}/git-holo-debug"
+    chmod +x "${HAB_BINLINK_DIR:-/bin}/git-holo"{,-debug}
+    echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo to /src/hologit/bin/cli.js"
+    echo "    Linked ${HAB_BINLINK_DIR:-/bin}/git-holo-debug to /src/hologit/bin/cli.js --inspect-brk=0.0.0.0:9229"
 else
-  hab pkg binlink jarvus/hologit
+    hab pkg binlink jarvus/hologit
 fi
 
 
@@ -103,6 +108,11 @@ studio-svc-config mysql-remote '
     port = 3306
 '
 
+-get-runtime-svc() {
+    local runtime_svc="${EMERGENCE_RUNTIME#*/}"
+    echo "${runtime_svc%%/*}"
+}
+
 -write-runtime-config() {
     if [ -z "${EMERGENCE_RUNTIME}" ]; then
         echo >&2 'No runtime is configured/loaded yet, try running: start-all'
@@ -111,39 +121,44 @@ studio-svc-config mysql-remote '
 
     local runtime_config="
         [error]
-        display = true
+          display = true
 
         [core]
-        root = \"${EMERGENCE_CORE}\"
+          root = \"${EMERGENCE_CORE}\"
+          debug = true
+          production = false
 
         [sites.default]
-        database = \"${DB_DATABASE:-default}\"
+          database = \"${DB_DATABASE:-default}\"
     "
 
-    if [ "${EMERGENCE_RUNTIME}" == "emergence/php-runtime" ] || [ -n "${EMERGENCE_SITE_GIT_DIR}" ]; then
+    local runtime_svc="$(-get-runtime-svc)"
+
+    if [ "${EMERGENCE_RUNTIME}" == "emergence/php-runtime" ] || [[ "${EMERGENCE_RUNTIME}" == emergence/php-runtime/* ]] || [ -n "${EMERGENCE_SITE_GIT_DIR}" ]; then
         runtime_config="${runtime_config}
 
             [sites.default.holo]
-            gitDir = \"${EMERGENCE_SITE_GIT_DIR:-${EMERGENCE_REPO}/.git}\"
+              gitDir = \"${EMERGENCE_SITE_GIT_DIR:-${EMERGENCE_REPO}/.git}\"
 
             [extensions.opcache.config]
-            validate_timestamps = true
+              validate_timestamps = true
         "
     fi
 
     if [ -n "${XDEBUG_HOST}" ]; then
-        mkdir -p "/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles"
-        chown hab:hab "/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles"
+        mkdir -p "/hab/svc/${runtime_svc}/var/profiles"
+        chown hab:hab "/hab/svc/${runtime_svc}/var/profiles"
 
         runtime_config="${runtime_config}
 
             [extensions.xdebug]
-            enabled=true
-            [extensions.xdebug.config]
-            remote_connect_back = 0
-            remote_host = '${XDEBUG_HOST}'
-            profiler_enable_trigger = 1
-            profiler_output_dir = '/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles'
+              enabled=true
+
+              [extensions.xdebug.config]
+                remote_connect_back = 0
+                remote_host = '${XDEBUG_HOST}'
+                profiler_enable_trigger = 1
+                profiler_output_dir = '/hab/svc/${runtime_svc}/var/profiles'
         "
     fi
 
@@ -151,11 +166,11 @@ studio-svc-config mysql-remote '
         runtime_config="${runtime_config}
 
             [sendmail]
-            path = 'hab pkg exec ${MAIL_SERVICE} sendmail -t -i'
+              path = 'hab pkg exec ${MAIL_SERVICE} sendmail -t -i'
         "
     fi
 
-    studio-svc-config --force ${EMERGENCE_RUNTIME#*/} "${runtime_config}"
+    studio-svc-config --force ${runtime_svc} "${runtime_config}"
 
     mkdir -p /root/.config/psysh
     cat > /root/.config/psysh/config.php <<- END_OF_SCRIPT
@@ -169,7 +184,7 @@ studio-svc-config mysql-remote '
         ],
 
         'defaultIncludes' => [
-            '/hab/svc/${EMERGENCE_RUNTIME#*/}/config/initialize.php',
+            '/hab/svc/${runtime_svc}/config/initialize.php',
         ]
     ];
 END_OF_SCRIPT
@@ -231,7 +246,7 @@ start-http() {
     fi
 
     hab svc load emergence/nginx \
-        --bind="backend:${1:-${EMERGENCE_RUNTIME#*/}.default}" \
+        --bind="backend:${1:-$("-get-runtime-svc").default}" \
         --strategy at-once \
         --force
 }
@@ -343,10 +358,10 @@ shell-runtime() {
 
 STUDIO_HELP['load-fixtures']="Reset database and load fixture data"
 load-fixtures() {
-    echo "Building fixtures from working tree..."
     pushd "${EMERGENCE_REPO}" > /dev/null
+
+    echo "Building fixtures from working tree..."
     fixtures_tree=$(git holo project --working ${FIXTURES_HOLOBRANCH:-fixtures})
-    popd > /dev/null
 
     : "${fixtures_tree:?Failed to build fixtures tree}"
 
@@ -362,6 +377,8 @@ load-fixtures() {
 
     echo "Running migrations..."
     console-run migrations:execute --all
+
+    popd > /dev/null
 }
 
 STUDIO_HELP['load-sql [-|file...|URL|site] [database]']="Load one or more .sql files into the active MySQL service"
@@ -381,7 +398,7 @@ load-sql() {
     elif [ -n "${EMERGENCE_RUNTIME}" ]; then
         # use cat to support - as value
         # shellcheck disable=SC2002
-        cat "${1:-/hab/svc/${EMERGENCE_RUNTIME#*/}/var/site-data/seed.sql}" | eval "${load_sql_mysql}"
+        cat "${1:-/hab/svc/$("-get-runtime-svc")/var/site-data/seed.sql}" | eval "${load_sql_mysql}"
     fi
 }
 
