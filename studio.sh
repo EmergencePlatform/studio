@@ -120,6 +120,8 @@ studio-svc-config mysql-remote '
 
         [core]
         root = \"${EMERGENCE_CORE}\"
+          debug = true
+          production = false
 
         [sites.default]
         database = \"${DB_DATABASE:-default}\"
