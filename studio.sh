@@ -108,6 +108,11 @@ studio-svc-config mysql-remote '
     port = 3306
 '
 
+-get-runtime-svc() {
+    local runtime_svc="${EMERGENCE_RUNTIME#*/}"
+    echo "${runtime_svc%%/*}"
+}
+
 -write-runtime-config() {
     if [ -z "${EMERGENCE_RUNTIME}" ]; then
         echo >&2 'No runtime is configured/loaded yet, try running: start-all'
@@ -116,41 +121,44 @@ studio-svc-config mysql-remote '
 
     local runtime_config="
         [error]
-        display = true
+          display = true
 
         [core]
-        root = \"${EMERGENCE_CORE}\"
+          root = \"${EMERGENCE_CORE}\"
           debug = true
           production = false
 
         [sites.default]
-        database = \"${DB_DATABASE:-default}\"
+          database = \"${DB_DATABASE:-default}\"
     "
 
-    if [ "${EMERGENCE_RUNTIME}" == "emergence/php-runtime" ] || [ -n "${EMERGENCE_SITE_GIT_DIR}" ]; then
+    local runtime_svc="$(-get-runtime-svc)"
+
+    if [ "${EMERGENCE_RUNTIME}" == "emergence/php-runtime" ] || [[ "${EMERGENCE_RUNTIME}" == emergence/php-runtime/* ]] || [ -n "${EMERGENCE_SITE_GIT_DIR}" ]; then
         runtime_config="${runtime_config}
 
             [sites.default.holo]
-            gitDir = \"${EMERGENCE_SITE_GIT_DIR:-${EMERGENCE_REPO}/.git}\"
+              gitDir = \"${EMERGENCE_SITE_GIT_DIR:-${EMERGENCE_REPO}/.git}\"
 
             [extensions.opcache.config]
-            validate_timestamps = true
+              validate_timestamps = true
         "
     fi
 
     if [ -n "${XDEBUG_HOST}" ]; then
-        mkdir -p "/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles"
-        chown hab:hab "/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles"
+        mkdir -p "/hab/svc/${runtime_svc}/var/profiles"
+        chown hab:hab "/hab/svc/${runtime_svc}/var/profiles"
 
         runtime_config="${runtime_config}
 
             [extensions.xdebug]
-            enabled=true
-            [extensions.xdebug.config]
-            remote_connect_back = 0
-            remote_host = '${XDEBUG_HOST}'
-            profiler_enable_trigger = 1
-            profiler_output_dir = '/hab/svc/${EMERGENCE_RUNTIME#*/}/var/profiles'
+              enabled=true
+
+              [extensions.xdebug.config]
+                remote_connect_back = 0
+                remote_host = '${XDEBUG_HOST}'
+                profiler_enable_trigger = 1
+                profiler_output_dir = '/hab/svc/${runtime_svc}/var/profiles'
         "
     fi
 
@@ -158,11 +166,11 @@ studio-svc-config mysql-remote '
         runtime_config="${runtime_config}
 
             [sendmail]
-            path = 'hab pkg exec ${MAIL_SERVICE} sendmail -t -i'
+              path = 'hab pkg exec ${MAIL_SERVICE} sendmail -t -i'
         "
     fi
 
-    studio-svc-config --force ${EMERGENCE_RUNTIME#*/} "${runtime_config}"
+    studio-svc-config --force ${runtime_svc} "${runtime_config}"
 
     mkdir -p /root/.config/psysh
     cat > /root/.config/psysh/config.php <<- END_OF_SCRIPT
@@ -176,7 +184,7 @@ studio-svc-config mysql-remote '
         ],
 
         'defaultIncludes' => [
-            '/hab/svc/${EMERGENCE_RUNTIME#*/}/config/initialize.php',
+            '/hab/svc/${runtime_svc}/config/initialize.php',
         ]
     ];
 END_OF_SCRIPT
@@ -238,7 +246,7 @@ start-http() {
     fi
 
     hab svc load emergence/nginx \
-        --bind="backend:${1:-${EMERGENCE_RUNTIME#*/}.default}" \
+        --bind="backend:${1:-$("-get-runtime-svc").default}" \
         --strategy at-once \
         --force
 }
@@ -390,7 +398,7 @@ load-sql() {
     elif [ -n "${EMERGENCE_RUNTIME}" ]; then
         # use cat to support - as value
         # shellcheck disable=SC2002
-        cat "${1:-/hab/svc/${EMERGENCE_RUNTIME#*/}/var/site-data/seed.sql}" | eval "${load_sql_mysql}"
+        cat "${1:-/hab/svc/$("-get-runtime-svc")/var/site-data/seed.sql}" | eval "${load_sql_mysql}"
     fi
 }
 
