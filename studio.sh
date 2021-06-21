@@ -375,8 +375,10 @@ load-fixtures() {
         done
     ) | mysql "${DB_DATABASE}"
 
-    echo "Running migrations..."
-    console-run migrations:execute --all
+    if [ "${1}" != "--no-migrations" ]; then
+        echo "Running migrations..."
+        console-run migrations:execute --all
+    fi
 
     popd > /dev/null
 }
