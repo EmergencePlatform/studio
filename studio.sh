@@ -53,9 +53,11 @@ if [ -f /src/hologit/bin/cli.js ]; then
     echo
     echo "--> Activating /src/hologit to provide git-holo and git-holo-debug"
 
-    _node_path="$(hab pkg path jarvus/node14)"
+    _node_path="$(hab pkg path core/node14)"
+    if [ -z "${_node_path}" ]; then _node_path="$(hab pkg path jarvus/node14)"; fi
     if [ -z "${_node_path}" ]; then _node_path="$(hab pkg path jarvus/node12)"; fi
     if [ -z "${_node_path}" ]; then _node_path="$(hab pkg path core/node)"; fi
+    if [ -z "${_node_path}" ]; then hab pkg install core/node14; _node_path="$(hab pkg path core/node14)"; fi
     echo "    Using node path: ${_node_path}"
 
     cat > "${HAB_BINLINK_DIR:-/bin}/git-holo" <<- END_OF_SCRIPT
