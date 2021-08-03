@@ -152,6 +152,8 @@ studio-svc-config mysql-remote '
         chown hab:hab "/hab/svc/${runtime_svc}/var/profiles"
 
         runtime_config="${runtime_config}
+            [limit]
+              execution_time = 300
 
             [extensions.xdebug]
               enabled=true
