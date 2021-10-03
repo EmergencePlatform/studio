@@ -1,6 +1,6 @@
 pkg_name=studio
 pkg_origin=emergence
-pkg_version="0.12"
+pkg_version="0.13"
 pkg_maintainer="Chris Alfano <chris@jarv.us>"
 pkg_license=("MIT")
 pkg_deps=(
