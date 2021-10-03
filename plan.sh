@@ -7,10 +7,8 @@ pkg_deps=(
   core/coreutils
   core/composer
   core/mysql-client
-  jarvus/rs-git-fsmonitor
   jarvus/hologit
   jarvus/studio-toolkit
-  jarvus/watchman
   emergence/php-runtime
   emergence/php5
   emergence/nginx
