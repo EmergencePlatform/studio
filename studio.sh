@@ -4,9 +4,7 @@
 echo
 echo "--> Populating common commands"
 hab pkg binlink core/git
-hab pkg binlink jarvus/watchman
 hab pkg binlink core/mysql-client mysql
-mkdir -m 777 -p /hab/svc/watchman/var
 
 
 echo
@@ -85,7 +83,6 @@ echo
 echo "--> Configuring git..."
 export GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 git config --global core.untrackedCache true
-git config --global core.fsmonitor "$(hab pkg path jarvus/rs-git-fsmonitor)/bin/rs-git-fsmonitor"
 git config --global user.name "Chef Habitat Studio"
 git config --global user.email "chef-habitat@studio"
 
@@ -364,23 +361,24 @@ STUDIO_HELP['load-fixtures']="Reset database and load fixture data"
 load-fixtures() {
     pushd "${EMERGENCE_REPO}" > /dev/null
 
-    echo "Building fixtures from working tree..."
+    >&2 echo "Building fixtures from working tree..."
     fixtures_tree=$(git holo project --working ${FIXTURES_HOLOBRANCH:-fixtures})
 
     : "${fixtures_tree:?Failed to build fixtures tree}"
 
-    echo "Resetting database"
+    >&2 echo "Resetting database"
     reset-mysql
 
-    echo "Loading fixtures..."
+    >&2 echo "Loading fixtures..."
     (
         for fixture_file in $(git ls-tree -r --name-only ${fixtures_tree}); do
+            >&2 echo "Loading ${fixture_file}"
             git cat-file -p "${fixtures_tree}:${fixture_file}"
         done
     ) | mysql "${DB_DATABASE}"
 
     if [ "${1}" != "--no-migrations" ]; then
-        echo "Running migrations..."
+        >&2 echo "Running migrations..."
         console-run migrations:execute --all
     fi
 

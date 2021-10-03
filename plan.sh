@@ -1,16 +1,14 @@
 pkg_name=studio
 pkg_origin=emergence
-pkg_version="0.12"
+pkg_version="0.13"
 pkg_maintainer="Chris Alfano <chris@jarv.us>"
 pkg_license=("MIT")
 pkg_deps=(
   core/coreutils
   core/composer
   core/mysql-client
-  jarvus/rs-git-fsmonitor
   jarvus/hologit
   jarvus/studio-toolkit
-  jarvus/watchman
   emergence/php-runtime
   emergence/php5
   emergence/nginx
