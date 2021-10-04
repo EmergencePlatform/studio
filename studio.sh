@@ -396,9 +396,9 @@ load-sql() {
     if [[ "${1}" =~ ^https?://[^/]+/?$ ]]; then
         printf "Developer username: "
         read LOAD_SQL_USER
-        wget --user="${LOAD_SQL_USER}" --ask-password "${1%/}/site-admin/database/dump.sql" -O - | eval "${load_sql_mysql}"
+        hab pkg exec core/wget wget --user="${LOAD_SQL_USER}" --ask-password "${1%/}/site-admin/database/dump.sql" -O - | eval "${load_sql_mysql}"
     elif [[ "${1}" =~ ^https?://[^/]+/.+ ]]; then
-        wget "${1}" -O - | eval "${load_sql_mysql}"
+        hab pkg exec core/wget wget "${1}" -O - | eval "${load_sql_mysql}"
     elif [ -n "${EMERGENCE_RUNTIME}" ]; then
         # use cat to support - as value
         # shellcheck disable=SC2002
