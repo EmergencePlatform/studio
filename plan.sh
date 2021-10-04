@@ -7,6 +7,7 @@ pkg_deps=(
   core/coreutils
   core/composer
   core/mysql-client
+  core/wget
   jarvus/hologit
   jarvus/studio-toolkit
   emergence/php-runtime
