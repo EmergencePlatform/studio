@@ -406,7 +406,7 @@ load-sql() {
     fi
 }
 
-STUDIO_HELP['dump-sql [database] > file.sql']="Dump active MySQL database to SQL"
+STUDIO_HELP['dump-sql [table1 table2...] > file.sql']="Dump active MySQL database to SQL"
 dump-sql() {
     hab pkg exec "${DB_SERVICE}" mysqldump \
         --force \
@@ -418,7 +418,8 @@ dump-sql() {
         --single-transaction \
         --compact \
         --quick \
-        "${1:-$DB_DATABASE}"
+        "${DB_DATABASE}" \
+        "$@"
 }
 
 STUDIO_HELP['promote-user <username> [account_level]']="Promote a user in the database"
