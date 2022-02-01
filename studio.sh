@@ -418,6 +418,7 @@ dump-sql() {
         --single-transaction \
         --compact \
         --quick \
+        --tz-utc \
         "${DB_DATABASE}" \
         "$@"
 }
@@ -434,11 +435,7 @@ reset-mysql() {
 
 STUDIO_HELP['console-run <command> [args...]']="Execute a console command within the current runtime instance"
 console-run() {
-    local console_command="${1}"
-    shift
-    [ -z "$console_command" ] && { echo >&2 'Usage: console-run <command> [args...]'; return 1; }
-
-    hab pkg exec "${EMERGENCE_RUNTIME}" emergence-console-run "${console_command}" "$@"
+    hab pkg exec "${EMERGENCE_RUNTIME}" emergence-console-run "$@"
 }
 
 
