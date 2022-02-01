@@ -418,6 +418,7 @@ dump-sql() {
         --single-transaction \
         --compact \
         --quick \
+        --tz-utc \
         "${DB_DATABASE}" \
         "$@"
 }
