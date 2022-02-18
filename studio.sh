@@ -191,6 +191,20 @@ studio-svc-config mysql-remote '
 END_OF_SCRIPT
 }
 
+-get-studio-host() {
+    local host="${1}"
+
+    if [ -z "${host}" ] || [ "${host}" == "-" ]; then
+        host="host.docker.internal"
+    fi
+
+    if [ "${host}" == "host.docker.internal" ] && ! hab pkg exec core/busybox-static nslookup "${host}" > /dev/null 2>&1; then
+        host="$(hab pkg exec core/busybox-static ip route|awk '/default/ { print $3 }')"
+    fi
+
+    echo "${host}"
+}
+
 
 ##
 ## SERVICE TOOLS
@@ -285,12 +299,15 @@ stop-all() {
 ## STUDIO CONFIGURATION
 ##
 
-STUDIO_HELP['enable-xdebug <debugger_host>']="Enable PHP Xdebug and configure to connect to given host"
+STUDIO_HELP['enable-xdebug [debugger_host]']="Enable PHP Xdebug and configure to connect to given host"
 enable-xdebug() {
-    export XDEBUG_HOST="${1:-127.0.0.1}"
+    XDEBUG_HOST="$("-get-studio-host" "${1}")"
+    export XDEBUG_HOST
+
     if [ -n "${EMERGENCE_RUNTIME}" ]; then
         "-write-runtime-config"
     fi
+
     echo "enabled Xdebug with remote debugger: ${XDEBUG_HOST}"
 }
 
@@ -319,20 +336,17 @@ enable-email() {
     echo "${MAIL_SERVICE} loaded and runtime configured to use it"
 }
 
-STUDIO_HELP['enable-email-relay <host> <port> <username> [password]']="Configure MTA to relay"
+STUDIO_HELP['enable-email-relay <host|-> <port> <username> [password]']="Configure MTA to relay"
 enable-email-relay() {
     if [ -z "${1}" ] || [ -z "${2}" ] || [ -z "${3}" ]; then
-        echo >&2 'Usage: enable-email-relay <host> <port> <username> [password]'
+        echo >&2 'Usage: enable-email-relay <host|-> <port> <username> [password]'
         return 1
     fi
 
-    local email_relay_host="${1}"
+    local email_relay_host
 
-    if [ "${email_relay_host}" == "host.docker.internal" ] && ! hab pkg exec core/busybox-static nslookup "${email_relay_host}" > /dev/null 2>&1; then
-        echo "Guessing host.docker.internal in non-Mac environment..."
-        email_relay_host="$(hab pkg exec core/busybox-static ip route|awk '/default/ { print $3 }')"
-        echo "Using: ${email_relay_host}"
-    fi
+    email_relay_host="$("-get-studio-host" "${1}")"
+    echo "Using host: ${email_relay_host}"
 
     studio-svc-config --force postfix "
         relayhost = '[${email_relay_host}]:${2}'
