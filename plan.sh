@@ -5,7 +5,9 @@ pkg_maintainer="Chris Alfano <chris@jarv.us>"
 pkg_license=("MIT")
 pkg_deps=(
   core/coreutils
-  core/composer
+  # built from https://github.com/habitat-sh/core-plans/compare/main...JarvusInnovations:habitat-core-plans:composer-version-bump
+  # switch back to core/composer after resolved: https://github.com/habitat-sh/core-plans/issues/4591
+  jarvus/composer
   core/mysql-client
   core/wget
   jarvus/hologit
