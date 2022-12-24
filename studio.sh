@@ -454,7 +454,7 @@ console-run() {
 
 STUDIO_HELP['phpunit']="Execute PHPUnit tests"
 phpunit() {
-    hab pkg exec emergence/phpunit phpunit "$@"
+    hab pkg exec emergence/phpunit phpunit -- "$@"
 }
 
 
