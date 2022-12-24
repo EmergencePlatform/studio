@@ -452,6 +452,11 @@ console-run() {
     hab pkg exec "${EMERGENCE_RUNTIME}" emergence-console-run "$@"
 }
 
+STUDIO_HELP['phpunit']="Execute PHPUnit tests"
+phpunit() {
+    hab pkg exec emergence/phpunit phpunit "$@"
+}
+
 
 ##
 ## SITE TOOLS

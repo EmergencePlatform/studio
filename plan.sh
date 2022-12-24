@@ -13,6 +13,7 @@ pkg_deps=(
   emergence/php-runtime
   emergence/php5
   emergence/nginx
+  emergence/phpunit
 )
 
 pkg_bin_dirs=(vendor/bin)
