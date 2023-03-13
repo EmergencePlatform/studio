@@ -128,7 +128,7 @@ studio-svc-config mysql-remote '
           production = false
 
         [sites.default]
-          database = \"${DB_DATABASE:-default}\"
+          database = \"${DB_DATABASE:-emergence-site}\"
     "
 
     local runtime_svc="$(-get-runtime-svc)"
@@ -217,7 +217,7 @@ start-mysql() {
     fi
 
     export DB_SERVICE="${1:-${DB_SERVICE:-core/mysql}}"
-    export DB_DATABASE="${2:-${DB_DATABASE:-default}}"
+    export DB_DATABASE="${2:-${DB_DATABASE:-emergence-site}}"
     ln -sf "/hab/svc/${DB_SERVICE#*/}/config/client.cnf" ~/.my.cnf
 
     if [ -d "/hab/svc/${DB_SERVICE#*/}/data" ]; then
