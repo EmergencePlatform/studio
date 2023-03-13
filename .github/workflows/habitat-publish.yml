@@ -32,3 +32,23 @@ jobs:
         hab-origin-key-secret: ${{ secrets.HAB_ORIGIN_KEY }}
         hab-origin-key-public: ${{ secrets.HAB_ORIGIN_KEY_PUB }}
         hab-auth-token: ${{ secrets.HAB_AUTH_TOKEN }}
+
+    - name: Login to ghcr.io
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Pull :latest Docker container image for caching
+      run: docker pull "ghcr.io/${GITHUB_REPOSITORY,,}:latest" || true
+
+    - name: Build Docker container image with build dependencies
+      run: |
+        docker build . \
+          --build-arg=HAB_LICENSE=accept-no-persist \
+          --cache-from="ghcr.io/${GITHUB_REPOSITORY,,}:latest"
+          --tag="ghcr.io/${GITHUB_REPOSITORY,,}:latest"
+
+    - name: Push Docker container image
+      run: docker push "ghcr.io/${GITHUB_REPOSITORY,,}:latest"
