@@ -3,6 +3,7 @@ FROM habitat/default-studio-x86_64-linux:1.6.607
 # configure environment
 ARG HAB_LICENSE=no-accept
 ENV HAB_LICENSE=$HAB_LICENSE
+ENV EMERGENCE_REPO=/src
 
 # install studio dependencies
 RUN hab pkg install \
