@@ -47,7 +47,7 @@ jobs:
       run: |
         docker build . \
           --build-arg=HAB_LICENSE=accept-no-persist \
-          --cache-from="ghcr.io/${GITHUB_REPOSITORY,,}:latest"
+          --cache-from="ghcr.io/${GITHUB_REPOSITORY,,}:latest" \
           --tag="ghcr.io/${GITHUB_REPOSITORY,,}:latest"
 
     - name: Push Docker container image
