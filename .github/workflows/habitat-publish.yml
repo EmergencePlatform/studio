@@ -27,6 +27,7 @@ jobs:
         sed -i "/^pkg_version=.*/c\pkg_version='${pkg_version}'" plan.sh
 
     - uses: JarvusInnovations/infra-components@channels/github-actions/habitat-publish/latest
+      id: habitat-publish
       with:
         checkout: false
         hab-origin-key-secret: ${{ secrets.HAB_ORIGIN_KEY }}
@@ -47,6 +48,7 @@ jobs:
       run: |
         docker build . \
           --build-arg=HAB_LICENSE=accept-no-persist \
+          --build-arg=STUDIO_PKG=${{ steps.habitat-publish.outputs.pkg_ident }} \
           --cache-from="ghcr.io/${GITHUB_REPOSITORY,,}:latest" \
           --tag="ghcr.io/${GITHUB_REPOSITORY,,}:latest"
 
