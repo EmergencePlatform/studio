@@ -1,5 +1,24 @@
 # studio
 
+## Project integration
+
+### Via studio base image
+
+This method provides the quickest startup time as in recommended in most cases.
+
+Create a `script/studio` launcher script:
+
+```bash
+#!/bin/bash
+
+export HAB_DOCKER_STUDIO_IMAGE="ghcr.io/emergenceplatform/studio:latest"
+hab studio enter -D
+```
+
+### Via .studiorc
+
+This method is most compatible with normal use of Habitat studios.
+
 Begin your project's `.studiorc` with:
 
 ```bash
