@@ -151,6 +151,7 @@ studio-svc-config mysql-remote '
         runtime_config="${runtime_config}
             [limit]
               execution_time = 300
+              memory = '500M'
 
             [extensions.xdebug]
               enabled=true

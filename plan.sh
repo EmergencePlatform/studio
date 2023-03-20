@@ -10,7 +10,7 @@ pkg_deps=(
   core/wget
   jarvus/hologit
   jarvus/studio-toolkit
-  emergence/php-runtime/0.12
+  emergence/php-runtime/1.0
   emergence/php5
   emergence/nginx
   emergence/phpunit
